@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use std::sync::mpsc::Receiver;
+use sdl2::Sdl;
 use sdl2::audio::{AudioDevice, AudioCallback, AudioSpecDesired};
 use resampler::{Resampler, Async};
 
@@ -30,7 +31,7 @@ pub struct Audio {
 }
 
 impl Audio {
-    pub fn new(channel: Receiver<::spu::SampleBuffer>) -> Audio {
+    pub fn new(channel: Receiver<::spu::SampleBuffer>, sdl2: &Sdl ) -> Audio {
 
         let resampler = Resampler::new(channel, SAMPLE_RATE);
 
@@ -44,13 +45,13 @@ impl Audio {
             samples:  Some(::spu::SAMPLES_PER_BUFFER as u16),
         };
 
-        let dev = 
-            match AudioDevice::open_playback(None,
-                                             spec,
-                                             |_| reader) {
-                Ok(d)  => d,
-                Err(e) => panic!("{}", e),
-            };
+        let audio_subsystem = sdl2.audio().unwrap();
+        let dev =  match audio_subsystem.open_playback(None,
+                                                       &spec,
+                                                       |_| reader) {
+            Ok(d)  => d,
+            Err(e) => panic!("{}", e),
+        };
 
         Audio {
             dev:   dev,

@@ -1,10 +1,11 @@
 use std::cell::Cell;
 
 use sdl2::event::Event;
-use sdl2::keycode::KeyCode;
+use sdl2::keyboard::Keycode;
 use sdl2::{joystick, controller};
 use sdl2::controller::{GameController, Button, Axis};
-use sdl2::sdl::Sdl;
+use sdl2::Sdl;
+use sdl2::GameControllerSubsystem;
 
 use ui::ButtonState;
 
@@ -17,11 +18,12 @@ pub struct Controller {
 }
 
 impl Controller {
-    pub fn new() -> Controller {
+    pub fn new(sdl2:&Sdl) -> Controller {
         // Attempt to add a game controller
 
+        let game_controller_subsystem = sdl2.game_controller().unwrap();
         let njoysticks =
-            match joystick::num_joysticks() {
+            match game_controller_subsystem.num_joysticks() {
                 Ok(n)  => n,
                 Err(e) => {
                     error!("Can't enumarate joysticks: {:?}", e);
@@ -34,10 +36,10 @@ impl Controller {
         // For now we just take the first controller we manage to open
         // (if any)
         for id in 0..njoysticks {
-            if controller::is_game_controller(id) {
+            if game_controller_subsystem.is_game_controller(id) {
                 println!("Attempting to open controller {}", id);
 
-                match GameController::open(id) {
+                match game_controller_subsystem.open(id) {
                     Ok(c) => {
                         // We managed to find and open a game controller,
                         // exit the loop
@@ -66,18 +68,25 @@ impl Controller {
     pub fn update(&self, sdl2: &Sdl) -> ::ui::Event {
         let mut event = ::ui::Event::None;
 
-        let mut event_pump = sdl2.event_pump();
+        let mut event_pump = match sdl2.event_pump() {
+            Ok(d)  => d,
+            Err(e) => panic!("{}", e),
+        };
 
         for e in event_pump.poll_iter() {
             match e {
-                Event::KeyDown { keycode: KeyCode::Escape, .. } =>
+                Event::KeyDown { keycode: Some(Keycode::Escape), .. } =>
                     event = ::ui::Event::PowerOff,
                 Event::KeyDown { keycode: key, .. } =>
-                    self.update_key(key, ButtonState::Down),
+                    if let Some(key) = key {
+                        self.update_key(key, ButtonState::Down)
+                    },
                 Event::KeyUp { keycode: key, .. } =>
-                    self.update_key(key, ButtonState::Up),
+                    if let Some(key) = key {
+                        self.update_key(key, ButtonState::Up)
+                    },
                 Event::ControllerButtonDown{ button, .. } =>
-                    self.update_button(button, ButtonState::Down),
+                        self.update_button(button, ButtonState::Down),
                 Event::ControllerButtonUp{ button, .. } =>
                     self.update_button(button, ButtonState::Up),
                 Event::ControllerAxisMotion{ axis, value: val, .. } =>
@@ -96,18 +105,18 @@ impl Controller {
     }
 
     /// Update key state. For now keybindings are hardcoded.
-    fn update_key(&self, key: KeyCode, state: ButtonState) {
+    fn update_key(&self, key: Keycode, state: ButtonState) {
         let mut b = self.buttons.get();
 
         match key {
-            KeyCode::Up        => b.up     = state,
-            KeyCode::Down      => b.down   = state,
-            KeyCode::Left      => b.left   = state,
-            KeyCode::Right     => b.right  = state,
-            KeyCode::LAlt      => b.a      = state,
-            KeyCode::LCtrl     => b.b      = state,
-            KeyCode::Return    => b.start  = state,
-            KeyCode::RShift    => b.select = state,
+            Keycode::Up        => b.up     = state,
+            Keycode::Down      => b.down   = state,
+            Keycode::Left      => b.left   = state,
+            Keycode::Right     => b.right  = state,
+            Keycode::LAlt      => b.a      = state,
+            Keycode::LCtrl     => b.b      = state,
+            Keycode::Return    => b.start  = state,
+            Keycode::RShift    => b.select = state,
             _                  => (),
         }
 

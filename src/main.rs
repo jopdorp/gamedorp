@@ -11,6 +11,9 @@
 #![warn(missing_docs)]
 
 #[macro_use]
+extern crate lazy_static;
+
+#[macro_use]
 extern crate log;
 extern crate sdl2;
 extern crate ascii;
@@ -57,7 +60,7 @@ fn main() {
 
     let (spu, audio_channel) = spu::Spu::new();
 
-    let mut audio = ui::sdl2::Audio::new(audio_channel);
+    let mut audio = ui::sdl2::Audio::new(audio_channel, &sdl2.sdl2);
 
     audio.start();
 

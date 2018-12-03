@@ -5,26 +5,27 @@ use std::cell::Cell;
 pub use ui::sdl2::display::Display;
 pub use ui::sdl2::controller::Controller;
 pub use ui::sdl2::audio::Audio;
+use sdl2::Sdl;
 
 mod display;
 mod audio;
 mod controller;
 
 pub struct Context {
-    sdl2: ::sdl2::sdl::Sdl,
+    pub sdl2: Sdl,
     controller: controller::Controller,
 }
 
 impl Context {
     pub fn new() -> Context {
         let sdl2 =
-            ::sdl2::init(::sdl2::INIT_VIDEO |
-                         ::sdl2::INIT_GAME_CONTROLLER |
-                         ::sdl2::INIT_AUDIO).unwrap();
+            ::sdl2::init().unwrap();
+
+        let contr = controller::Controller::new(&sdl2);
 
         Context {
             sdl2: sdl2,
-            controller: controller::Controller::new(),
+            controller: contr,
         }
     }
 
