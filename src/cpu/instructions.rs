@@ -100,7 +100,7 @@ fn ldd_hl_a(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     if instruction == 0x32 {
         let address = cpu.read_hl_address();
         cpu.memory_map.store_byte(address, cpu.accumulator);
-        cpu.write_combined_register(address - 1,4);
+        cpu.write_combined_register(address.wrapping_sub(1),4);
         return (true, 8);
     }
     (false, 0)
@@ -110,7 +110,7 @@ fn ldi_hl_a(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     if instruction == 0x22 {
         let mut address = cpu.read_hl_address();
         cpu.memory_map.store_byte(address.clone(), cpu.accumulator);
-        cpu.write_combined_register(address + 1,4);
+        cpu.write_combined_register(wrapping_increment_16(address),4);
         return (true, 8);
     }
     (false, 0)
@@ -322,7 +322,7 @@ fn subtract(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     if first_half == 0x9 && second_half < 0x6 {
         let value = cpu.simple_registers[second_half as usize];
         set_flags_for_subtract(cpu, value);
-        cpu.accumulator = cpu.accumulator - value;
+        cpu.accumulator = cpu.accumulator.wrapping_sub(value);
         return (true, 4);
     }
     (false, 0)
@@ -373,6 +373,7 @@ fn jump(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
 fn jump_cc_n(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     let mut should_jump = false;
     match instruction {
+        0x18 => { should_jump = true; },
         0x20 => { should_jump = !cpu.flags[7]; },
         0x28 => { should_jump = cpu.flags[7]; },
         0x30 => { should_jump = !cpu.flags[4] },
@@ -384,12 +385,8 @@ fn jump_cc_n(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     // done here because the immediate value should not be interpreted as an opcode
     let distance = cpu.read_and_advance_program_counter() as i8;
     if should_jump {
-        // todo: should promgram_counter advance?, maybe it should even go one address back.
-        if distance > 0 {
-            cpu.program_counter += (distance.abs()) as u16;
-        } else {
-            cpu.program_counter -= (distance.abs()) as u16;
-        }
+        let pc = cpu.program_counter as i16;
+        cpu.program_counter = pc.wrapping_add(distance as i16) as u16;
         return (true, 12);
     }
     (true, 8)
@@ -489,21 +486,21 @@ fn increment(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
             0x3C => {
                 let value = cpu.accumulator.clone();
                 set_flags_for_increment(cpu, value);
-                cpu.accumulator = (Wrapping(value) + Wrapping(1)).0;
+                cpu.accumulator = wrapping_increment(value);
             }
             0x34 => {
                 let mut value = cpu.read_hl();
                 set_flags_for_increment(cpu, value);
-                value = (Wrapping(value) + Wrapping(1)).0;
+                value = wrapping_increment(value);
                 let address = cpu.read_hl_address();
                 cpu.memory_map.store_byte(address, value);
                 return (true, 12);
             }
             _ => {
                 let register= (first_half * 2) + second_half / 8;
-                let value = Wrapping(cpu.simple_registers[register as usize]);
-                set_flags_for_increment(cpu, value.0);
-                let new_value = (value + Wrapping(1)).0;
+                let value = cpu.simple_registers[register as usize];
+                set_flags_for_increment(cpu, value);
+                let new_value = wrapping_increment(value);
                 cpu.simple_registers[register as usize] = new_value;
                 return (true, 4);
             }
@@ -625,9 +622,8 @@ fn rl_n(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
 *         HELPERS
 **************************/
 fn rotate_left(value:u8, cpu:&mut Cpu) -> u8 {
-    let carry = value & 0b10000000 == 0b10000000;
     let new_value = ((value & 0b01111111) << 1) | cpu.flags[4] as u8;
-    cpu.flags[4] = carry;
+    cpu.flags[4] = value & 0x80 != 0;
     cpu.flags[5] = false;
     cpu.flags[6] = false;
     cpu.flags[7] = new_value == 0;
@@ -659,10 +655,9 @@ fn is_bit_zero(value:u8, bit_index:u8) -> bool {
 }
 
 fn set_flags_for_decrement(cpu: &mut Cpu, value: u8) {
-    //TODO: flag 5 might me inverted
-    cpu.flags[5] = (value & 0b00010000) == 0b00000;
+    cpu.flags[5] = value & 0xf == 0;
     cpu.flags[6] = true;
-    cpu.flags[7] = value == 0;
+    cpu.flags[7] = wrapping_decrement(value) == 0;
 }
 
 fn set_flags_for_increment(cpu: &mut Cpu, value: u8) {
@@ -673,9 +668,9 @@ fn set_flags_for_increment(cpu: &mut Cpu, value: u8) {
         false,
         false,
         current_flags[4],
-        (value & 0b00001000) == 0b1000,
+        value & 0xf == 0xf,
         false,
-        value == 0,
+        wrapping_increment(value) == 0,
     ];
 }
 

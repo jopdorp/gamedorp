@@ -11,6 +11,7 @@ use cpu::instructions::INSTRUCTIONS_PIPELINE;
 use io::Interconnect;
 
 mod instructions;
+mod cpu_test;
 
 // TODO: implement per frame adjustments to improve timing precision
 // see http://hitmen.c02.at/files/releases/gbc/gbc_cpu_timing.txt
@@ -59,7 +60,7 @@ impl<'a> Cpu<'a> {
 
     pub fn read_and_advance_program_counter(&mut self) -> u8 {
         let instruction_code= self.memory_map.fetch_byte(self.program_counter);
-        self.program_counter = self.program_counter + 1;
+        self.program_counter = self.program_counter.wrapping_add(1);
         return instruction_code;
     }
 
@@ -72,18 +73,18 @@ impl<'a> Cpu<'a> {
 
     pub fn push_stack(&mut self, value:u16) {
         trace!("pushing 0x{:x} onto the stack\n", value);
-        self.stack_pointer -= 1;
+        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
         self.memory_map.store_byte(self.stack_pointer, ((value & 0xFF00) >> 8) as u8);
-        self.stack_pointer -= 1;
+        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
         self.memory_map.store_byte(self.stack_pointer, (value & 0x00FF) as u8);
     }
 
 
     pub fn pop_stack(&mut self) -> u16 {
         let lower = self.memory_map.fetch_byte(self.stack_pointer);
-        self.stack_pointer += 1;
+        self.stack_pointer = self.stack_pointer.wrapping_add(1);
         let higher = ((self.memory_map.fetch_byte(self.stack_pointer) as u16) << 8) as u16;
-        self.stack_pointer += 1;
+        self.stack_pointer = self.stack_pointer.wrapping_add(1);
         trace!("popped 0x{:x} from the stack\n",higher | lower as u16);
         higher | lower as u16
     }

@@ -1,0 +1,31 @@
+{
+  "gb_rs::cpu::cpu_test::test::cpu_snapshot_is_correct_at_pc_0x98": {
+    "file": "src/cpu/cpu_test.rs",
+    "module_path": "gb_rs::cpu::cpu_test::test",
+    "test_function": "cpu_snapshot_is_correct_at_pc_0x98",
+    "recorded_value": [
+      [],
+      206,
+      152,
+      65532,
+      [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      [
+        4,
+        206,
+        1,
+        4,
+        128,
+        16
+      ]
+    ]
+  }
+}
