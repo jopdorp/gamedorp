@@ -20,6 +20,7 @@ extern crate num;
 use std::sync::mpsc::channel;
 use ui::Audio;
 use std::path::Path;
+use cpu::CanRunInstruction;
 
 mod cpu;
 mod gb_rs_cpu;
@@ -55,8 +56,13 @@ fn main() {
     let mut audio = ui::sdl2::Audio::new(audio_channel, &sdl2.sdl2);
     audio.start();
     let inter = io::Interconnect::new(cart, gpu, spu, sdl2.buttons());
-    let mut cpu = cpu::Cpu::new(inter);
 
+
+    let mut cpu:Box<CanRunInstruction> = if argv.len() > 2 && &argv[2] == "gb-rs" {
+        Box::new(::gb_rs_cpu::Cpu::new(inter))
+    }else{
+        Box::new(cpu::Cpu::new(inter))
+    };
     // In order to synchronize the emulation speed with the wall clock
     // we need to wait at some point so that we don't go too
     // fast. Waiting between each cycle would mean a storm of syscalls

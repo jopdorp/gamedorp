@@ -5,7 +5,9 @@ mod test {
     use std::time::Duration;
     use std::path::Path;
 
+
     pub use cpu::Cpu;
+    pub use cpu::CanRunInstruction;
 
     #[test]
     fn cpu_has_the_same_states_as_gb_rs_cpu() {
@@ -39,15 +41,22 @@ mod test {
         let mut cpu2 = ::gb_rs_cpu::Cpu::new(inter2);
 
 
-        while cpu.program_counter != 0xA7 {
+        while cpu2.regs.pc != 0x68 {
             let pc = cpu.program_counter;
-            print!("testing instruction 0x{:x} for pc 0x{:x}\n", cpu.memory_map.fetch_byte(pc), pc);
+            let pc2 = cpu2.regs.pc;
+            print!("cpu1 testing instruction 0x{:x} for pc 0x{:x}\n", cpu.memory_map.fetch_byte(pc), pc);
+            print!("cpu2 testing instruction 0x{:x} for pc 0x{:x}\n", cpu2.inter.fetch_byte(pc2), pc2);
             cpu.run_next_instruction();
             cpu2.run_next_instruction();
-            let flat_cpu1 = flatten(&cpu);
-            let flat_cpu2 = flatten_gr_rs(&cpu2);
-            assert_eq!(flat_cpu1,flat_cpu2);
-            if cpu.program_counter == 0x98 {
+            print!("next cpu1 pc {:x}\n", cpu.program_counter);
+            print!("next cpu2 pc {:x}\n", cpu2.regs.pc);
+            if cpu2.regs.pc == 0x42 ||
+                cpu2.regs.pc == 0x45 ||
+                cpu2.regs.pc == 0x4B {
+
+                let flat_cpu1 = flatten(&cpu);
+                let flat_cpu2 = flatten_gr_rs(&cpu2);
+                assert_eq!(flat_cpu1,flat_cpu2);
                 for i in 0..0xFFFF {
                     if i == 0xff04 {
                         continue;

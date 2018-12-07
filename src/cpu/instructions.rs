@@ -80,9 +80,8 @@ fn ld_immediate_value_8_bit(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
 }
 
 fn ld_immediate_value_16_bit(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
-    let first_half = get_first_half(instruction);
-    let get_second_half = get_second_half(instruction);
-    if get_second_half == 1 && first_half < 4 {
+    let (first_half, second_half) = split_into_halves(instruction);
+    if second_half == 1 && first_half < 4 {
         let value = cpu.read_immediate_value_16();
         if first_half == 3 {
             cpu.stack_pointer = value;
@@ -198,8 +197,8 @@ fn ld_a_into_n(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
         }
         0xEA => {
             let address = cpu.read_immediate_value_16();
-            let value = cpu.memory_map.fetch_byte(address);
-            cpu.accumulator = value;
+            let value = cpu.accumulator;
+            cpu.memory_map.store_byte(address, value);
             return (true, 16);
         }
         _ => {
@@ -230,6 +229,7 @@ fn ld_r1_r2(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
 
         if second_register_index < 6 {
             destination = cpu.simple_registers[second_register_index as usize];
+            print!("loading register {} into register {}", second_register_index, destination);
             return (true, 4);
         }
 
@@ -306,11 +306,8 @@ fn load_into_hl(cpu: &mut Cpu, instruction: u8, second_register_index: u32) {
 fn compare(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     if instruction == 0xFE {
         let to = cpu.read_and_advance_program_counter();
-        cpu.flags[7] = cpu.accumulator == to;
-        cpu.flags[6] = true;
-        //TODO: not sure about this borrow flag
-        cpu.flags[5] = (to & 0b00010000)  == 1 && (cpu.accumulator & 0b00010000) == 0;
-        cpu.flags[4] = cpu.accumulator < to;
+        let from = cpu.accumulator.clone();
+        subtract_and_set_flags(cpu, from, to);
         return (true, 4);
     }
     (false, 0)
@@ -320,13 +317,15 @@ fn subtract(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     let first_half = get_first_half(instruction);
     let second_half = get_second_half(instruction);
     if first_half == 0x9 && second_half < 0x6 {
-        let value = cpu.simple_registers[second_half as usize];
-        set_flags_for_subtract(cpu, value);
-        cpu.accumulator = cpu.accumulator.wrapping_sub(value);
+        let a = cpu.accumulator;
+        let b = cpu.simple_registers[second_half as usize];
+        cpu.accumulator = subtract_and_set_flags(cpu, a, b);
         return (true, 4);
     }
     (false, 0)
 }
+
+
 
 fn xor(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     let first_half = get_first_half(instruction);
@@ -622,8 +621,8 @@ fn rl_n(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
 *         HELPERS
 **************************/
 fn rotate_left(value:u8, cpu:&mut Cpu) -> u8 {
-    let new_value = ((value & 0b01111111) << 1) | cpu.flags[4] as u8;
-    cpu.flags[4] = value & 0x80 != 0;
+    let new_value = (value << 1)| cpu.flags[4] as u8;
+    cpu.flags[4] = (value >> 7) != 0;
     cpu.flags[5] = false;
     cpu.flags[6] = false;
     cpu.flags[7] = new_value == 0;
@@ -679,18 +678,26 @@ fn do_return(cpu: &mut Cpu) {
     cpu.program_counter = address;
 }
 
-fn set_flags_for_subtract(cpu: &mut Cpu, value: u8) {
-    let h = (((cpu.accumulator as i32 & 0xF) - (value as i32 & 0xF)) < 0);
+fn subtract_and_set_flags(cpu: &mut Cpu, a: u8, b: u8) -> u8 {
+    // Check for borrow using 32bit arithmetics
+    let a = a as u32;
+    let b = b as u32;
+
+    let r = a.wrapping_sub(b);
+
+    let rb = r as u8;
+
     cpu.flags = [
         false,
         false,
         false,
         false,
-        cpu.accumulator < value,
-        h,
-        false,
-        cpu.accumulator == value,
+        r & 0x100 != 0,
+        (a ^ b ^ r) & 0x10 != 0,
+        true,
+        rb == 0,
     ];
+    rb
 }
 
 fn to_u32(slice: &[u8]) -> u32 {

@@ -19,6 +19,9 @@ mod cpu_test;
 // but the system doesn't support that precision
 const CYCLE_TIME:u64 = 954;
 
+pub trait CanRunInstruction {
+    fn run_next_instruction(&mut self) -> u8;
+}
 
 pub struct Cpu<'a> {
     pub simple_registers: [u8; 6],
@@ -43,19 +46,6 @@ impl<'a> Cpu<'a> {
             interrupts_enabled: true,
             instructions_pipeline: vec![],
         }
-    }
-
-    pub fn run_next_instruction(&mut self) -> u8 {
-        trace!("about to read instruction at pc {:x}\n", self.program_counter);
-        let instruction_code= self.read_and_advance_program_counter();
-        trace!("about to run instruction {:x}\n", instruction_code);
-        for instruction in INSTRUCTIONS_PIPELINE.iter() {
-            let (found_instruction, clock_cycles) = instruction(self, instruction_code);
-            if found_instruction {
-                return clock_cycles;
-            }
-        }
-        panic!("unsupported opcode {:x}\n", instruction_code);
     }
 
     pub fn read_and_advance_program_counter(&mut self) -> u8 {
@@ -144,5 +134,21 @@ impl<'a> Cpu<'a> {
 
 }
 
-
+impl<'n> CanRunInstruction for Cpu<'n> {
+    fn run_next_instruction(&mut self) -> u8 {
+        trace!("about to read instruction at pc {:x}\n", self.program_counter);
+        let instruction_code= self.read_and_advance_program_counter();
+        trace!("about to run instruction {:x}\n", instruction_code);
+        for instruction in INSTRUCTIONS_PIPELINE.iter() {
+            let (found_instruction, clock_cycles) = instruction(self, instruction_code);
+            if found_instruction {
+                for _ in 0..clock_cycles {
+                    self.memory_map.step();
+                }
+                return clock_cycles;
+            }
+        }
+        panic!("unsupported opcode {:x}\n", instruction_code);
+    }
+}
 

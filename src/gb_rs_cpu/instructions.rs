@@ -369,7 +369,8 @@ fn rla(cpu: &mut self::Cpu) {
     cpu.set_a((a << 1) | oldcarry);
 
     cpu.set_carry(newcarry);
-    cpu.set_zero(false);
+    let is_zero = cpu.a() == 0;
+    cpu.set_zero(is_zero);
     cpu.set_halfcarry(false);
     cpu.set_substract(false);
 }

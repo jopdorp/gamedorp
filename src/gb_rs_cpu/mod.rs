@@ -96,55 +96,6 @@ impl<'a> Cpu<'a> {
         }
     }
 
-    /// Execute an instruction or wait for an interrupt if the system
-    /// is halted. The rest of the emulator state will be advanced
-    /// indirectly by the `advance` method below. The function returns
-    /// the number of system clock periods ("ticks") elapsed running
-    /// the instruction.
-    pub fn run_next_instruction(&mut self) -> u8 {
-
-        self.instruction_cycles = 0;
-
-        if self.iten {
-            if let Some(it) = self.inter.next_interrupt_ack() {
-                // We have a pending interrupt!
-                self.interrupt(it);
-                // Wait until the context switch delay is over. We're
-                // sure not to reenter here after that since the
-                // `iten` is set to false in `self.interrupt`
-                return self.instruction_cycles;
-            }
-        } else {
-            // If an interrupt enable is pending we update the iten
-            // flag
-            self.iten = self.iten_enable_next;
-        }
-
-        if self.halted {
-            self.inter.step();
-            self.instruction_cycles += 1;
-
-            // Check if we have a pending interrupt because even if
-            // `iten` is false HALT returns when an IT is triggered
-            // (but the IT handler doesn't run)
-            if !self.iten && self.inter.next_interrupt().is_some() {
-                self.halted = false;
-            } else {
-                // Wait for interrupt
-                return self.instruction_cycles;
-            }
-        }
-
-        // Now we fetch the next instruction
-        let instruction = next_instruction(self);
-
-        // Run the next instruction. This can change the entire CPU
-        // state.
-        (instruction)(self);
-
-        self.instruction_cycles
-    }
-
     /// Execute interrupt handler for `it`
     fn interrupt(&mut self, it: Interrupt) {
 
@@ -534,5 +485,56 @@ impl<'a> Debug for Cpu<'a> {
         try!(writeln!(f, "  iten: {}  halted: {}", self.iten, self.halted));
 
         Ok(())
+    }
+}
+
+impl<'n> ::cpu::CanRunInstruction for self::Cpu<'n> {
+    /// Execute an instruction or wait for an interrupt if the system
+    /// is halted. The rest of the emulator state will be advanced
+    /// indirectly by the `advance` method below. The function returns
+    /// the number of system clock periods ("ticks") elapsed running
+    /// the instruction.
+    fn run_next_instruction(&mut self) -> u8 {
+
+        self.instruction_cycles = 0;
+
+        if self.iten {
+            if let Some(it) = self.inter.next_interrupt_ack() {
+                // We have a pending interrupt!
+                self.interrupt(it);
+                // Wait until the context switch delay is over. We're
+                // sure not to reenter here after that since the
+                // `iten` is set to false in `self.interrupt`
+                return self.instruction_cycles;
+            }
+        } else {
+            // If an interrupt enable is pending we update the iten
+            // flag
+            self.iten = self.iten_enable_next;
+        }
+
+        if self.halted {
+            self.inter.step();
+            self.instruction_cycles += 1;
+
+            // Check if we have a pending interrupt because even if
+            // `iten` is false HALT returns when an IT is triggered
+            // (but the IT handler doesn't run)
+            if !self.iten && self.inter.next_interrupt().is_some() {
+                self.halted = false;
+            } else {
+                // Wait for interrupt
+                return self.instruction_cycles;
+            }
+        }
+
+        // Now we fetch the next instruction
+        let instruction = next_instruction(self);
+
+        // Run the next instruction. This can change the entire CPU
+        // state.
+        (instruction)(self);
+
+        self.instruction_cycles
     }
 }
