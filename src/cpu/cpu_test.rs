@@ -41,7 +41,7 @@ mod test {
         let mut cpu2 = ::gb_rs_cpu::Cpu::new(inter2);
 
 
-        while cpu2.regs.pc != 0x68 {
+        while cpu2.regs.pc != 0x897987 {
             let pc = cpu.program_counter;
             let pc2 = cpu2.regs.pc;
             print!("cpu1 testing instruction 0x{:x} for pc 0x{:x}\n", cpu.memory_map.fetch_byte(pc), pc);
@@ -59,6 +59,9 @@ mod test {
                 assert_eq!(flat_cpu1,flat_cpu2);
                 for i in 0..0xFFFF {
                     if i == 0xff04 {
+                        // cycles for instructions are not identical.
+                        // cpu1 uses cycles as reported in:
+                        // http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
                         continue;
                     }
                     let gamedorp_val = cpu.memory_map.fetch_byte(i);

@@ -8,16 +8,11 @@ use self::bit_vec::BitVec;
 use self::time::{precise_time_ns};
 
 use cpu::instructions::INSTRUCTIONS_PIPELINE;
-use io::Interconnect;
+use io::{Interconnect, Interrupt};
+
 
 mod instructions;
 mod cpu_test;
-
-// TODO: implement per frame adjustments to improve timing precision
-// see http://hitmen.c02.at/files/releases/gbc/gbc_cpu_timing.txt
-// 1.048576mhz converts into a duration of 953.674316 nanoseconds,
-// but the system doesn't support that precision
-const CYCLE_TIME:u64 = 954;
 
 pub trait CanRunInstruction {
     fn run_next_instruction(&mut self) -> u8;
@@ -30,7 +25,9 @@ pub struct Cpu<'a> {
     pub stack_pointer: u16,
     pub program_counter: u16,
     pub memory_map:Interconnect<'a>,
-    pub interrupts_enabled: bool,
+    iten: bool,
+    iten_enable_next: bool,
+    halted: bool,
     instructions_pipeline: Vec<fn(&Cpu,u8) -> bool>,
 }
 
@@ -43,7 +40,9 @@ impl<'a> Cpu<'a> {
             stack_pointer: 0xFFFE,
             program_counter: 0,
             memory_map: inter,
-            interrupts_enabled: true,
+            iten: true,
+            iten_enable_next: true,
+            halted: false,
             instructions_pipeline: vec![],
         }
     }
@@ -121,6 +120,7 @@ impl<'a> Cpu<'a> {
             for (index, value) in BitVec::from_bytes(&[lower]).iter().enumerate() {
                 self.flags[index] = value;
             }
+            return;
         }
         self.simple_registers[first_register as usize] = ((value & 0xFF00) >> 8) as u8;
         self.simple_registers[(first_register + 1) as usize] = (value & 0x00FF) as u8;
@@ -132,10 +132,91 @@ impl<'a> Cpu<'a> {
         ((value_first_half as u16) << 8) | value_second_half as u16
     }
 
+
+    /// Disable Interrupts. Takes effect immediately and cancels any
+    /// pending interrupt enable request.
+    fn disable_interrupts(&mut self) {
+        self.iten             = false;
+        self.iten_enable_next = false;
+    }
+
+    /// Enable Interrupts immediately
+    fn enable_interrupts(&mut self) {
+        self.iten             = true;
+        self.iten_enable_next = true;
+    }
+
+    /// Enable Interrupts after the next instruction.
+    fn enable_interrupts_next(&mut self) {
+        self.iten_enable_next = true;
+    }
+
+    /// Halt and wait for interrupts
+    fn halt(&mut self) {
+        self.halted = true;
+    }
+
+    /// Execute interrupt handler for `it`
+    fn interrupt(&mut self, it: Interrupt) {
+
+        // If the CPU was halted it's time to wake it up.
+        self.halted = false;
+        // Interrupt are disabled when entering an interrupt handler.
+        self.disable_interrupts();
+
+        let handler_addr = match it {
+            Interrupt::VBlank => 0x40,
+            Interrupt::Lcdc   => 0x48,
+            Interrupt::Timer  => 0x50,
+        };
+
+        // Push current value to stack
+        let pc = self.program_counter;
+        self.push_stack(pc);
+
+        // Jump to IT handler
+        self.program_counter = handler_addr;
+    }
+
 }
 
 impl<'n> CanRunInstruction for Cpu<'n> {
     fn run_next_instruction(&mut self) -> u8 {
+
+
+        let mut extra_cycles_for_interrupt = 0;
+
+        if self.iten {
+            if let Some(it) = self.memory_map.next_interrupt_ack() {
+                // We have a pending interrupt!
+                self.interrupt(it);
+                extra_cycles_for_interrupt += 24;
+                // Wait until the context switch delay is over. We're
+                // sure not to reenter here after that since the
+                // `iten` is set to false in `self.interrupt`
+                return extra_cycles_for_interrupt;
+            }
+        } else {
+            // If an interrupt enable is pending we update the iten
+            // flag
+            self.iten = self.iten_enable_next;
+        }
+
+        if self.halted {
+            self.memory_map.step();
+            extra_cycles_for_interrupt += 4;
+
+            // Check if we have a pending interrupt because even if
+            // `iten` is false HALT returns when an IT is triggered
+            // (but the IT handler doesn't run)
+            if !self.iten && self.memory_map.next_interrupt().is_some() {
+                self.halted = false;
+            } else {
+                // Wait for interrupt
+                return extra_cycles_for_interrupt;
+            }
+        }
+
         trace!("about to read instruction at pc {:x}\n", self.program_counter);
         let instruction_code= self.read_and_advance_program_counter();
         trace!("about to run instruction {:x}\n", instruction_code);
@@ -145,7 +226,7 @@ impl<'n> CanRunInstruction for Cpu<'n> {
                 for _ in 0..clock_cycles {
                     self.memory_map.step();
                 }
-                return clock_cycles;
+                return clock_cycles + extra_cycles_for_interrupt;
             }
         }
         panic!("unsupported opcode {:x}\n", instruction_code);
