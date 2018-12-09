@@ -1773,7 +1773,11 @@ fn inc_sp(cpu: &mut self::Cpu) {
 }
 
 /// Decrement `BC`
-fn dec_bc(cpu: &mut self::Cpu) {
+fn
+
+
+
+dec_bc(cpu: &mut self::Cpu) {
     let bc = cpu.bc();
 
     cpu.set_bc(bc.wrapping_sub(1));

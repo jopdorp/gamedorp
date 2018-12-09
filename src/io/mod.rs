@@ -24,7 +24,7 @@ pub struct Interconnect<'a> {
     /// 0-page RAM
     zpage:      ram::Ram,
     /// Timer instance
-    timer:      timer::Timer,
+    pub timer:      timer::Timer,
     /// GPU instance
     gpu:        Gpu<'a>,
     /// SPU instance
@@ -40,7 +40,7 @@ pub struct Interconnect<'a> {
     /// The game boy starts up mapping the bootrom at address [0,
     /// 0xff]. The last thing the bootrom does is writing 0x01 to
     /// UNMAP_BOOTROM to remove itself from the memory map.
-    bootrom:    bool,
+    pub bootrom:    bool,
 }
 
 impl<'a> Interconnect<'a> {
@@ -101,6 +101,11 @@ impl<'a> Interconnect<'a> {
         if let Some(off) = map::in_range(addr, map::ROM) {
             if self.bootrom && off < 0x100 {
                 // Bootrom is still mapped, read from it
+                let should_read_bootrom = self.bootrom && off < 0x100;
+                if !self.bootrom {
+                    panic!("how did you end up here? bootrom was disabled! {}, {}\n",
+                           self.bootrom,should_read_bootrom)
+                }
                 return bootrom::BOOTROM[off as usize];
             }
 
@@ -185,6 +190,7 @@ impl<'a> Interconnect<'a> {
         if self.bootrom && addr == map::UNMAP_BOOTROM {
             if val == 1 {
                 // Unmap bootrom
+                print!("disabling bootrom!\n");
                 self.bootrom = false;
             }
             return;

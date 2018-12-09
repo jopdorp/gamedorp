@@ -3,19 +3,19 @@
 /// Timer state
 pub struct Timer {
     /// Timer counter. Generates an interrupt on overflow.
-    counter: u8,
+    pub counter: u8,
     /// Timer modulo: on overflow `counter` gets reloaded with that
     /// value.
-    modulo: u8,
+    pub modulo: u8,
     /// If true timer is counting and generating interrupts
-    enabled: bool,
+    pub enabled: bool,
     /// System clock divider. When `enabled`, at each tick of the
     /// divider clock `counter` is incremented.
-    divider: Divider,
+    pub divider: Divider,
     /// Free-running counter used as a divider for the sysclk
-    counter_16k: u32,
+    pub counter_16k: u32,
     /// True if interrupt is pending
-    interrupt: bool,
+    pub interrupt: bool,
 }
 
 impl Timer {
@@ -122,8 +122,8 @@ impl Timer {
 }
 
 /// Possible divider values usable as timer clock source.
-#[derive(Clone,Copy,Debug)]
-enum Divider {
+#[derive(Clone,Copy,Debug,PartialEq)]
+pub enum Divider {
     /// Divide sysclk by 16. Timer clock is 262.144kHz
     Div16   = 4,
     /// Divide sysclk by 64. Timer clock is 65.536kHz

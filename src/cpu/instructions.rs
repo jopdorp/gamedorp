@@ -32,10 +32,15 @@ lazy_static! {
         ldh_n_a,
         ldh_a_n,
         ldi_hl_a,
+        ldi_a_hl,
         ld_sp_hl,
+        ldd_a16_sp,
+        stop,
         load_a_ff_c,
         load_ff_c_a,
         jump,
+        jump_hl,
+        jump_a16,
         compare,
         subtract,
         add_a_n,
@@ -43,10 +48,12 @@ lazy_static! {
         xor,
         prefix_cb,
         jump_cc_n,
+        jump_cc_nn,
         enable_interrupts,
         disable_interrupts,
         ret,
         ret_cc,
+        reti,
         pop,
         push,
         call_immediate_16,
@@ -59,7 +66,9 @@ lazy_static! {
         and,
         daa,
         scf,
-        adc
+        adc,
+        cpl,
+        rst
     ];
     static ref PREFIX_CB_INSTRUCTIONS_PIPELINE: Vec<fn(&mut Cpu, u8) -> (bool, u8)> = vec![
         test_bit,
@@ -120,11 +129,34 @@ fn ldd_hl_a(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     (false, 0)
 }
 
+
+fn ldd_a16_sp(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
+    if instruction == 0x8 {
+        let address = cpu.read_immediate_value_16();
+        let stack_pointer = cpu.stack_pointer;
+        cpu.memory_map.store_byte(address, stack_pointer as u8);
+        cpu.memory_map.store_byte(address.wrapping_add(1), (stack_pointer >> 8) as u8);
+        return (true, 20);
+    }
+    (false, 0)
+}
+
 fn ldi_hl_a(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
-    if instruction == 0x22 || instruction == 0x2A {
+    if instruction == 0x22 {
         let mut address = cpu.read_hl_address();
-        cpu.memory_map.store_byte(address.clone(), cpu.accumulator);
-        cpu.write_combined_register(wrapping_increment_16(address),4);
+        cpu.memory_map.store_byte(address, cpu.accumulator);
+        cpu.write_combined_register(address.wrapping_add(1),4);
+        return (true, 8);
+    }
+    (false, 0)
+}
+
+fn ldi_a_hl(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
+    if instruction == 0x2A {
+        let mut address = cpu.read_hl_address();
+        let value = cpu.read_hl();
+        cpu.accumulator = value;
+        cpu.write_combined_register(address.wrapping_add(1),4);
         return (true, 8);
     }
     (false, 0)
@@ -138,10 +170,11 @@ fn ld_n_into_a(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
             cpu.accumulator = cpu.accumulator;
         } else if second_half == 0xE {
             cpu.accumulator = cpu.read_hl();
+            return (true, 8);
         } else {
             cpu.accumulator = cpu.simple_registers[(second_half - 8) as usize];
         }
-        return (true, 8);
+        return (true, 4);
     }
 
     match instruction {
@@ -220,7 +253,7 @@ fn ld_a_into_n(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
             return (false, 0);
         }
     }
-    (true, 8)
+    (true, 4)
 }
 
 fn ld_r1_r2(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
@@ -244,7 +277,7 @@ fn ld_r1_r2(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
 
         if second_register_index < 6 {
             destination = cpu.simple_registers[second_register_index as usize];
-            print!("loading register {} into register {}", second_register_index, destination);
+            print!("loading register {} into register {}\n", second_register_index, destination);
             return (true, 4);
         }
 
@@ -417,7 +450,26 @@ fn jump(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     if instruction == 0xc3 {
         let value = cpu.read_immediate_value_16();
         cpu.program_counter = value;
-        return (true, 12);
+        return (true, 16);
+    }
+    (false, 0)
+}
+
+fn jump_a16(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
+    if instruction == 0xC3 {
+        let value = cpu.read_immediate_value_16();
+        cpu.program_counter = value;
+        return (true, 4);
+    }
+    (false, 0)
+}
+
+
+fn jump_hl(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
+    if instruction == 0xE9 {
+        let value = cpu.read_hl_address();
+        cpu.program_counter = value;
+        return (true, 4);
     }
     (false, 0)
 }
@@ -444,6 +496,29 @@ fn jump_cc_n(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     (true, 8)
 }
 
+
+fn jump_cc_nn(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
+    let mut should_jump = false;
+    match instruction {
+        0xC2 => { should_jump = !cpu.flags[7]; },
+        0xCA => { should_jump = cpu.flags[7]; },
+        0xD2 => { should_jump = !cpu.flags[4] },
+        0xDA => { should_jump = cpu.flags[4] },
+        _ => {
+            return (false, 0);
+        }
+    }
+    // done here because the immediate value should not be interpreted as an opcode
+    let distance = cpu.read_immediate_value_16() as i16;
+    if should_jump {
+        let pc = cpu.program_counter as i16;
+        cpu.program_counter = pc.wrapping_add(distance as i16) as u16;
+        return (true, 12);
+    }
+    (true, 8)
+}
+
+
 fn enable_interrupts(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     if instruction == 0xFB {
         cpu.iten_enable_next = true;
@@ -454,7 +529,7 @@ fn enable_interrupts(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
 
 fn disable_interrupts(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     if instruction == 0xF3 {
-        cpu.iten_enable_next = false;
+        cpu.disable_interrupts();
         return (true, 4);
     }
     (false, 0)
@@ -466,7 +541,7 @@ fn call_immediate_16(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
         let address = cpu.program_counter;
         cpu.push_stack(address);
         cpu.program_counter = jump_to;
-        return (true, 12);
+        return (true, 24);
     }
     (false, 0)
 }
@@ -474,7 +549,7 @@ fn call_immediate_16(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
 fn ret(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     if instruction == 0xC9 {
         do_return(cpu);
-        return (true, 8);
+        return (true, 16);
     }
     (false, 0)
 }
@@ -503,6 +578,15 @@ fn ret_cc(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
             do_return(cpu);
         }
         return (true, 8);
+    }
+    (false, 0)
+}
+
+fn reti(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
+    if instruction == 0xD9 {
+        do_return(cpu);
+        cpu.enable_interrupts();
+        return (true, 16);
     }
     (false, 0)
 }
@@ -602,7 +686,11 @@ fn decrement_nn(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     if first_half <= 3 && second_half == 0xB {
         let first_register = first_half * 2;
         let value = cpu.read_combined_register(first_register);
-        cpu.write_combined_register( value.wrapping_add(1), first_register);
+        cpu.write_combined_register( value.wrapping_sub(1), first_register);
+        return (true, 8);
+    } else if instruction == 0x3B {
+        let value = cpu.stack_pointer;
+        cpu.stack_pointer = value.wrapping_sub(1);
         return (true, 8);
     }
     (false, 0)
@@ -811,6 +899,40 @@ fn adc(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     (false, 0)
 }
 
+fn stop(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
+    if instruction == 0x10 {
+        let _ = cpu.read_and_advance_program_counter();
+        cpu.stop();
+        return (true, 4);
+    }
+    (false, 0)
+}
+
+
+fn cpl(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
+    if instruction == 0x2F {
+        let value = cpu.accumulator;
+        cpu.accumulator = !value;
+        cpu.flags[5] = true;
+        cpu.flags[6] = true;
+        return (true, 4);
+    }
+    (false, 0)
+}
+
+
+fn rst(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
+    let (first_half, second_half)= split_into_halves(instruction);
+
+    if first_half >= 0xC && (second_half == 0x7 || second_half == 0xF){
+        let address = ((first_half - 0xC) << 4) | (second_half - 7);
+        let program_counter = cpu.program_counter;
+        cpu.push_stack(program_counter);
+        cpu.program_counter = address as u16;
+        return (true, 16)
+    }
+    (false, 0)
+}
 
 
 /*************************\

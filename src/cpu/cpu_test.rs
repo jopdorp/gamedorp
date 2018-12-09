@@ -8,6 +8,7 @@ mod test {
 
     pub use cpu::Cpu;
     pub use cpu::CanRunInstruction;
+    pub use ::io::timer::Divider;
 
     #[test]
     fn cpu_has_the_same_states_as_gb_rs_cpu() {
@@ -44,24 +45,27 @@ mod test {
         while cpu2.regs.pc != 0x897987 {
             let pc = cpu.program_counter;
             let pc2 = cpu2.regs.pc;
-            print!("cpu1 testing instruction 0x{:x} for pc 0x{:x}\n", cpu.memory_map.fetch_byte(pc), pc);
-            print!("cpu2 testing instruction 0x{:x} for pc 0x{:x}\n", cpu2.inter.fetch_byte(pc2), pc2);
+            if cpu2.regs.pc > 0x100 {
+                print!("cpu1 testing instruction 0x{:x} for pc 0x{:x}\n", cpu.memory_map.fetch_byte(pc), pc);
+                print!("cpu2 testing instruction 0x{:x} for pc 0x{:x}\n", cpu2.inter.fetch_byte(pc2), pc2);
+            }
             cpu.run_next_instruction();
             cpu2.run_next_instruction();
-            print!("next cpu1 pc {:x}\n", cpu.program_counter);
-            print!("next cpu2 pc {:x}\n", cpu2.regs.pc);
-            if cpu2.regs.pc == 0x42 ||
-                cpu2.regs.pc == 0x45 ||
-                cpu2.regs.pc == 0x4B {
-
+            if cpu2.regs.pc > 0x100 {
+                print!("next cpu1 pc {:x}\n", cpu.program_counter);
+                print!("next cpu2 pc {:x}\n", cpu2.regs.pc);
                 let flat_cpu1 = flatten(&cpu);
                 let flat_cpu2 = flatten_gr_rs(&cpu2);
                 assert_eq!(flat_cpu1,flat_cpu2);
+            }
+
+
+
+            if cpu2.regs.pc == 0x42 ||
+                cpu2.regs.pc == 0x45 ||
+                cpu2.regs.pc == 0x4B {
                 for i in 0..0xFFFF {
                     if i == 0xff04 {
-                        // cycles for instructions are not identical.
-                        // cpu1 uses cycles as reported in:
-                        // http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
                         continue;
                     }
                     let gamedorp_val = cpu.memory_map.fetch_byte(i);
@@ -75,15 +79,21 @@ mod test {
         }
     }
 
-    fn flatten(cpu: &Cpu) -> (u8, u16, u16, [bool;8], [u8;6]) {
-        (cpu.accumulator, cpu.program_counter, cpu.stack_pointer, cpu.flags.clone(), cpu.simple_registers.clone())
+    fn flatten(cpu: &Cpu) -> (u8, u32, Divider, u8, u16, u16, [bool;8], [u8;6]) {
+        let counter = cpu.memory_map.timer.counter;
+        let counter_16k= cpu.memory_map.timer.counter_16k;
+        let divider = cpu.memory_map.timer.divider;
+        (counter, counter_16k, divider, cpu.accumulator, cpu.program_counter, cpu.stack_pointer, cpu.flags.clone(), cpu.simple_registers.clone())
     }
 
 
-    fn flatten_gr_rs(cpu: &::gb_rs_cpu::Cpu) -> (u8, u16, u16, [bool;8], [u8;6]) {
+    fn flatten_gr_rs(cpu: &::gb_rs_cpu::Cpu) -> (u8, u32, Divider, u8, u16, u16, [bool;8], [u8;6]) {
         let flags = [false,false,false,false,cpu.flags.c,cpu.flags.h,cpu.flags.n,cpu.flags.z];
         let h = ((cpu.regs.hl & 0xFF00) >> 8) as u8;
         let l = (cpu.regs.hl & 0xFF) as u8;
-        (cpu.regs.a, cpu.regs.pc, cpu.regs.sp, flags, [cpu.regs.b,cpu.regs.c,cpu.regs.d,cpu.regs.e,h,l])
+        let counter = cpu.inter.timer.counter;
+        let counter_16k= cpu.inter.timer.counter_16k;
+        let divider = cpu.inter.timer.divider;
+        (counter, counter_16k, divider, cpu.regs.a, cpu.regs.pc, cpu.regs.sp, flags, [cpu.regs.b,cpu.regs.c,cpu.regs.d,cpu.regs.e,h,l])
     }
 }

@@ -29,6 +29,9 @@ pub struct Cpu<'a> {
     iten_enable_next: bool,
     halted: bool,
     instructions_pipeline: Vec<fn(&Cpu,u8) -> bool>,
+    last_instruction_codes: Vec<u8>,
+    last_pcs: Vec<u16>,
+    was_bootroms: Vec<bool>,
 }
 
 impl<'a> Cpu<'a> {
@@ -44,6 +47,9 @@ impl<'a> Cpu<'a> {
             iten_enable_next: true,
             halted: false,
             instructions_pipeline: vec![],
+            last_instruction_codes: vec![],
+            last_pcs: vec![],
+            was_bootroms: vec![]
         }
     }
 
@@ -178,6 +184,10 @@ impl<'a> Cpu<'a> {
         self.program_counter = handler_addr;
     }
 
+    pub fn stop(&mut self) {
+        panic!("STOP is not implemented");
+    }
+
 }
 
 impl<'n> CanRunInstruction for Cpu<'n> {
@@ -191,6 +201,9 @@ impl<'n> CanRunInstruction for Cpu<'n> {
                 // We have a pending interrupt!
                 self.interrupt(it);
                 extra_cycles_for_interrupt += 24;
+                for _ in 0..extra_cycles_for_interrupt {
+                    self.memory_map.step();
+                }
                 // Wait until the context switch delay is over. We're
                 // sure not to reenter here after that since the
                 // `iten` is set to false in `self.interrupt`
@@ -204,7 +217,7 @@ impl<'n> CanRunInstruction for Cpu<'n> {
 
         if self.halted {
             self.memory_map.step();
-            extra_cycles_for_interrupt += 4;
+            extra_cycles_for_interrupt += 1;
 
             // Check if we have a pending interrupt because even if
             // `iten` is false HALT returns when an IT is triggered
@@ -218,18 +231,41 @@ impl<'n> CanRunInstruction for Cpu<'n> {
         }
 
         trace!("about to read instruction at pc {:x}\n", self.program_counter);
+
+        // for debugging
+        let last_pc = self.program_counter.clone();
+
+        let is_bootrom = self.memory_map.bootrom;
         let instruction_code= self.read_and_advance_program_counter();
         trace!("about to run instruction {:x}\n", instruction_code);
         for instruction in INSTRUCTIONS_PIPELINE.iter() {
             let (found_instruction, clock_cycles) = instruction(self, instruction_code);
             if found_instruction {
-                for _ in 0..clock_cycles {
+                let total_cycles = clock_cycles + extra_cycles_for_interrupt;
+                for _ in 0..total_cycles {
                     self.memory_map.step();
                 }
+
+                // just for debugging
+                if self.last_instruction_codes.len() > 20 {
+                    let _ = self.last_instruction_codes.pop();
+                    let _ = self.last_pcs.pop();
+                    let _ = self.was_bootroms.pop();
+                }
+                self.last_instruction_codes.push(instruction_code);
+                self.last_pcs.push(last_pc);
+                self.was_bootroms.push(is_bootrom);
+
                 return clock_cycles + extra_cycles_for_interrupt;
             }
         }
-        panic!("unsupported opcode {:x}\n", instruction_code);
+
+        for (i, value) in self.last_instruction_codes.iter().enumerate() {
+            print!( "last instruction and pc 0x{:x}, 0x{:x} bootrom {}\n",
+                    value,self.last_pcs[i],self.was_bootroms[i]);
+
+        }
+        panic!("unsupported opcode 0x{:x} at pc 0x{:x}\n", instruction_code, last_pc);
     }
 }
 
