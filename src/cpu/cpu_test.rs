@@ -45,13 +45,14 @@ mod test {
         while cpu2.regs.pc != 0x897987 {
             let pc = cpu.program_counter;
             let pc2 = cpu2.regs.pc;
-            if cpu2.regs.pc > 0x100 {
+            let counter = cpu.memory_map.timer.counter_16k;
+            if counter > 24078000 {
                 print!("cpu1 testing instruction 0x{:x} for pc 0x{:x}\n", cpu.memory_map.fetch_byte(pc), pc);
                 print!("cpu2 testing instruction 0x{:x} for pc 0x{:x}\n", cpu2.inter.fetch_byte(pc2), pc2);
             }
             cpu.run_next_instruction();
             cpu2.run_next_instruction();
-            if cpu2.regs.pc > 0x100 {
+            if counter > 24078000 {
                 print!("next cpu1 pc {:x}\n", cpu.program_counter);
                 print!("next cpu2 pc {:x}\n", cpu2.regs.pc);
                 let flat_cpu1 = flatten(&cpu);

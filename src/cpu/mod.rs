@@ -200,7 +200,7 @@ impl<'n> CanRunInstruction for Cpu<'n> {
             if let Some(it) = self.memory_map.next_interrupt_ack() {
                 // We have a pending interrupt!
                 self.interrupt(it);
-                extra_cycles_for_interrupt += 24;
+                extra_cycles_for_interrupt += 32;
                 for _ in 0..extra_cycles_for_interrupt {
                     self.memory_map.step();
                 }

@@ -191,6 +191,7 @@ fn ld_n_into_a(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
             let address = cpu.read_immediate_value_16();
             let value = cpu.memory_map.fetch_byte(address);
             cpu.accumulator = value;
+            return (true, 16);
         }
         0x3E => {
             let value = cpu.read_and_advance_program_counter();
@@ -272,18 +273,19 @@ fn ld_r1_r2(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
 
         let mut destination: u8 = 0;
         if first_register_index < 6 {
-            let mut destination = cpu.simple_registers[first_register_index as usize];
+            destination = cpu.simple_registers[first_register_index as usize];
         }
 
         if second_register_index < 6 {
-            destination = cpu.simple_registers[second_register_index as usize];
-            print!("loading register {} into register {}\n", second_register_index, destination);
+            let value = cpu.simple_registers[second_register_index as usize];
+            cpu.simple_registers[destination as usize] =  value;
             return (true, 4);
         }
 
         if second_register_index == 6 {
-            let address = cpu.read_hl();
-            destination = cpu.memory_map.fetch_byte(address as u16);
+            let address = cpu.read_hl_address();
+            let value = cpu.memory_map.fetch_byte(address);
+            cpu.simple_registers[first_register_index as usize] = value;
             return (true, 8);
         }
 
@@ -439,7 +441,7 @@ fn add_hl_n(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
         let first_register = first_half * 2;
         b = cpu.read_combined_register(first_register);
         let result = add_and_set_flags_16(cpu, a, b);
-        cpu.write_combined_register( result, first_register );
+        cpu.write_combined_register( result, 4);
         return (true, 8);
     }
     (false, 0)
@@ -558,24 +560,28 @@ fn ret_cc(cpu: &mut Cpu, instruction: u8) -> (bool, u8) {
     if instruction == 0xC0 {
         if !cpu.flags[7] {
             do_return(cpu);
+            return (true, 20);
         }
         return (true, 8);
     }
     if instruction == 0xC8 {
         if cpu.flags[7] {
             do_return(cpu);
+            return (true, 20);
         }
         return (true, 8);
     }
     if instruction == 0xD0 {
         if !cpu.flags[4] {
             do_return(cpu);
+            return (true, 20);
         }
         return (true, 8);
     }
     if instruction == 0xD8 {
         if cpu.flags[4] {
             do_return(cpu);
+            return (true, 20);
         }
         return (true, 8);
     }
