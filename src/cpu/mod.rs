@@ -31,7 +31,7 @@ pub struct Cpu<'a> {
     instructions_pipeline: Vec<fn(&Cpu,u8) -> bool>,
     last_instruction_codes: Vec<u8>,
     last_pcs: Vec<u16>,
-    was_bootroms: Vec<bool>,
+    instruction_cycles: u8
 }
 
 impl<'a> Cpu<'a> {
@@ -49,7 +49,7 @@ impl<'a> Cpu<'a> {
             instructions_pipeline: vec![],
             last_instruction_codes: vec![],
             last_pcs: vec![],
-            was_bootroms: vec![]
+            instruction_cycles: 0
         }
     }
 
@@ -110,7 +110,7 @@ impl<'a> Cpu<'a> {
         if first_register == 6 {
             let higher = ((self.accumulator as u16) << 8);
             let mut lower:u16 = 0;
-            for value  in self.flags.iter(){
+            for value  in self.flags.iter().rev() {
                 lower = (lower << 1) | (*value as u16);
             }
             return higher | lower;
@@ -123,7 +123,7 @@ impl<'a> Cpu<'a> {
         if first_register == 6 {
             self.accumulator = ((value & 0xFF00) >> 8) as u8;
             let lower = (value & 0x00FF) as u8;
-            for (index, value) in BitVec::from_bytes(&[lower]).iter().enumerate() {
+            for (index, value) in BitVec::from_bytes(&[lower]).iter().rev().enumerate() {
                 self.flags[index] = value;
             }
             return;
@@ -209,10 +209,8 @@ impl<'n> CanRunInstruction for Cpu<'n> {
                 // `iten` is set to false in `self.interrupt`
                 return extra_cycles_for_interrupt;
             }
-        } else {
-            // If an interrupt enable is pending we update the iten
-            // flag
-            self.iten = self.iten_enable_next;
+        } else if self.iten_enable_next {
+            self.iten = true;
         }
 
         if self.halted {
@@ -235,34 +233,38 @@ impl<'n> CanRunInstruction for Cpu<'n> {
         // for debugging
         let last_pc = self.program_counter.clone();
 
-        let is_bootrom = self.memory_map.bootrom;
         let instruction_code= self.read_and_advance_program_counter();
         trace!("about to run instruction {:x}\n", instruction_code);
         for instruction in INSTRUCTIONS_PIPELINE.iter() {
             let (found_instruction, clock_cycles) = instruction(self, instruction_code);
             if found_instruction {
-                let total_cycles = clock_cycles + extra_cycles_for_interrupt;
-                for _ in 0..total_cycles {
+                for _ in 0..clock_cycles {
                     self.memory_map.step();
                 }
 
                 // just for debugging
-                if self.last_instruction_codes.len() > 20 {
+                if self.last_instruction_codes.len() > 100 {
                     let _ = self.last_instruction_codes.pop();
                     let _ = self.last_pcs.pop();
-                    let _ = self.was_bootroms.pop();
                 }
-                self.last_instruction_codes.push(instruction_code);
-                self.last_pcs.push(last_pc);
-                self.was_bootroms.push(is_bootrom);
+                let instr: &mut Vec<u8> = &mut vec![instruction_code];
+                let pcs: &mut Vec<u16> = &mut vec![last_pc];
+                {
+                    let old_instr:&mut Vec<u8> = &mut self.last_instruction_codes;
+                    instr.append(old_instr);
+                    let old_last_pcs:&mut Vec<u16> = &mut self.last_pcs;
+                    pcs.append(old_last_pcs);
+                }
+                self.last_instruction_codes = instr.to_vec();
+                self.last_pcs = pcs.to_vec();
 
-                return clock_cycles + extra_cycles_for_interrupt;
+                return clock_cycles;
             }
         }
 
-        for (i, value) in self.last_instruction_codes.iter().enumerate() {
-            print!( "last instruction and pc 0x{:x}, 0x{:x} bootrom {}\n",
-                    value,self.last_pcs[i],self.was_bootroms[i]);
+        for (i, value) in self.last_instruction_codes.iter().rev().enumerate() {
+            print!( "last instruction and pc 0x{:x}, 0x{:x}\n",
+                    value,self.last_pcs[i]);
 
         }
         panic!("unsupported opcode 0x{:x} at pc 0x{:x}\n", instruction_code, last_pc);

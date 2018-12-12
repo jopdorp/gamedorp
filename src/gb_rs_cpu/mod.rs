@@ -507,10 +507,10 @@ impl<'n> ::cpu::CanRunInstruction for self::Cpu<'n> {
                 // `iten` is set to false in `self.interrupt`
                 return self.instruction_cycles;
             }
-        } else {
+        } else if self.iten_enable_next {
             // If an interrupt enable is pending we update the iten
             // flag
-            self.iten = self.iten_enable_next;
+            self.iten = true;
         }
 
         if self.halted {
