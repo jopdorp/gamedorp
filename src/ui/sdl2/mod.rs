@@ -27,8 +27,8 @@ impl Context {
         }
     }
 
-    pub fn new_display(&self, upscale: u8) -> display::Display {
-        display::Display::new(&self.sdl2, upscale)
+    pub fn new_display(&self, upscale: u8, fullscreen: bool) -> display::Display {
+        display::Display::new(&self.sdl2, upscale, fullscreen)
     }
 
     pub fn buttons(&self) -> &Cell<::ui::Buttons> {

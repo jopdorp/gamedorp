@@ -52,7 +52,7 @@ fn main() {
     println!("Loaded ROM {:?}", cart);
 
     let sdl2 = ui::sdl2::Context::new();
-    let mut display = sdl2.new_display(5);
+    let mut display = sdl2.new_display(5, true);
     let gpu = gpu::Gpu::new(&mut display);
     let (spu, audio_channel) = spu::Spu::new();
     let mut audio = ui::sdl2::Audio::new(audio_channel, &sdl2.sdl2);

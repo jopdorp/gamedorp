@@ -31,7 +31,7 @@ lazy_static = "1.2.0"
 sdl2 = "0.31.0"
 
 [profile.test]
-opt-level = 1
+opt-level = 3
 
 
 [profile.dev]

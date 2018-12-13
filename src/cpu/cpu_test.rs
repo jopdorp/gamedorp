@@ -11,7 +11,7 @@ mod test {
 
     #[test]
     fn cpu_has_the_same_states_as_gb_rs_cpu() {
-        let rompath = Path::new("Tetris.gb");
+        let rompath = Path::new("Mario.gb");
 
         let cart = match ::cartridge::Cartridge::from_path(&rompath) {
             Ok(r) => r,
@@ -19,7 +19,7 @@ mod test {
         };
 
         let sdl2 = ::ui::sdl2::Context::new();
-        let mut display = sdl2.new_display(1);
+        let mut display = sdl2.new_display(1, false);
         let gpu = ::gpu::Gpu::new(&mut display);
         let (spu, audio_channel) = ::spu::Spu::new();
         let mut audio = ::ui::sdl2::Audio::new(audio_channel, &sdl2.sdl2);
@@ -32,7 +32,7 @@ mod test {
             Err(e) => panic!("Failed to load ROM: {}", e),
         };
 
-        let mut display2 = sdl2.new_display(1);
+        let mut display2 = sdl2.new_display(1, false);
         let gpu2 = ::gpu::Gpu::new(&mut display2);
         let (spu2, audio_channel2) = ::spu::Spu::new();
         let mut audio2 = ::ui::sdl2::Audio::new(audio_channel2, &sdl2.sdl2);
@@ -44,10 +44,14 @@ mod test {
             let pc = cpu.program_counter;
             let pc2 = cpu2.regs.pc;
             let counter = cpu.memory_map.timer.counter_16k;
-            if counter > 59820000 {
+            if counter >= 1000000 {
+                break;
+            }
+            if counter % 10000 == 0 {
+                let instruction = cpu.memory_map.fetch_byte(pc);
                 print!(
                     "cpu1 testing instruction 0x{:x} for pc 0x{:x}\n",
-                    cpu.memory_map.fetch_byte(pc),
+                    instruction,
                     pc
                 );
                 print!(
@@ -55,10 +59,14 @@ mod test {
                     cpu2.inter.fetch_byte(pc2),
                     pc2
                 );
+
+                if instruction == 0xCB {
+                    print!("cpu cb instruction is 0x{:x}\n", cpu.memory_map.fetch_byte(pc.wrapping_add(1)));
+                }
             }
             cpu.run_next_instruction();
             cpu2.run_next_instruction();
-            if counter > 59820000 {
+            if counter % 10000 == 0 {
                 print!("next cpu1 pc {:x}\n", cpu.program_counter);
                 print!("next cpu2 pc {:x}\n", cpu2.regs.pc);
                 let flat_cpu1 = flatten(&cpu);
@@ -66,11 +74,8 @@ mod test {
                 assert_eq!(flat_cpu1, flat_cpu2);
             }
 
-            if counter > 59820000 {
+            if counter % 10000 == 0 {
                 for i in 0..0xFFFF {
-                    if i >= 0xff00 {
-                        continue;
-                    }
                     let gamedorp_val = cpu.memory_map.fetch_byte(i);
                     let gb_rs_val = cpu2.inter.fetch_byte(i);
                     if gamedorp_val != gb_rs_val {
@@ -78,6 +83,8 @@ mod test {
                             "memory is different at 0x{:x} gamedorp has {:x} gb_rs has {:x}\n",
                             i, gamedorp_val, gb_rs_val
                         );
+                        print!("cpu1 {:?}", flatten(&cpu));
+                        print!("cpu2 {:?}", flatten_gr_rs(&cpu2));
                     }
                     assert_eq!(gamedorp_val, gb_rs_val)
                 }
