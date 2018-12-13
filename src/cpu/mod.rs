@@ -8,6 +8,7 @@ use self::bit_vec::BitVec;
 use self::time::{precise_time_ns};
 
 use cpu::instructions::INSTRUCTIONS_PIPELINE;
+use cpu::instructions::split_into_halves;
 use io::{Interconnect, Interrupt};
 
 
@@ -286,8 +287,9 @@ impl<'n> CanRunInstruction for Cpu<'n> {
 
         let instruction_code= self.read_and_advance_program_counter();
         trace!("about to run instruction {:x}\n", instruction_code);
+        let (first_half, second_half) = split_into_halves(instruction_code);
         for instruction in INSTRUCTIONS_PIPELINE.iter() {
-            let (found_instruction, _) = instruction(self, instruction_code);
+            let (found_instruction, _) = instruction(self, instruction_code, first_half, second_half);
             if found_instruction {
                 // just for debugging
                 if self.last_instruction_codes.len() > 100 {
