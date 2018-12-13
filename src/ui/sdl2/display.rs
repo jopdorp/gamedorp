@@ -1,7 +1,7 @@
 use sdl2::pixels::Color as SDL_Color;
 use sdl2::rect::{Point, Rect};
 use sdl2::render::Canvas;
-use sdl2::video::Window;
+use sdl2::video::{Window, FullscreenType, SwapInterval};
 use sdl2::Sdl;
 
 use gpu::Color;
@@ -14,15 +14,17 @@ pub struct Display {
 
 impl Display {
     pub fn new(sdl2: &Sdl, upscale: u8) -> Display {
-        let up = 1 << (upscale as u32);
+        let xres = 160 * upscale as u32;
+        let yres = 144 * upscale as u32;
 
-        let xres = 160 * up;
-        let yres = 144 * up;
-
-        let video_subsystem = sdl2.video().unwrap();
-
-        let window = video_subsystem
-            .window("Example", xres, yres)
+        let mut video_subsystem = sdl2.video().unwrap();
+        video_subsystem.gl_set_swap_interval(SwapInterval::Immediate);
+        let mut window = video_subsystem
+            .window("gb-rs", xres, yres)
+            .fullscreen()
+            .opengl()
+            .position_centered()
+            .borderless()
             .build()
             .unwrap();
         let canvas = window
@@ -34,7 +36,7 @@ impl Display {
 
         Display {
             renderer: canvas,
-            upscale: upscale,
+            upscale,
         }
     }
 }
@@ -61,13 +63,11 @@ impl ::ui::Display for Display {
         if self.upscale == 0 {
             let _ = drawer.draw_point(Point::new(x as i32, y as i32));
         } else {
-            let up: u32 = 1 << (self.upscale as u32);
-
             // Translate coordinates
-            let x = x as i32 * up as i32;
-            let y = y as i32 * up as i32;
+            let x = x as i32 * self.upscale as i32;
+            let y = y as i32 * self.upscale as i32;
 
-            let _ = drawer.fill_rect(Rect::new(x, y, up, up));
+            let _ = drawer.fill_rect(Rect::new(x, y, self.upscale as u32, self.upscale as u32));
         }
     }
 

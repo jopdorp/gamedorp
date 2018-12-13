@@ -17,7 +17,7 @@ lazy_static! {
     ]
     .into_iter()
     .collect();
-    pub static ref INSTRUCTIONS_PIPELINE: Vec<fn(&mut Cpu, u8, u8, u8) -> (bool, u8)> = vec![
+    pub static ref INSTRUCTIONS_PIPELINE: Vec<fn(&mut Cpu, u8, u8, u8) -> bool> = vec![
         nop,
         ld_immediate_value_8_bit,
         ld_immediate_value_16_bit,
@@ -70,37 +70,37 @@ lazy_static! {
         rst,
         halt
     ];
-    static ref PREFIX_CB_INSTRUCTIONS_PIPELINE: Vec<fn(&mut Cpu, u8, u8, u8) -> (bool, u8)> =
+    static ref PREFIX_CB_INSTRUCTIONS_PIPELINE: Vec<fn(&mut Cpu, u8, u8, u8) -> bool> =
         vec![test_bit, rl_n, swap, res, sla, set, srl];
 }
 
 /*************************\
 *       INSTRUCTIONS
 **************************/
-fn nop(_: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn nop(_: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0 {
-        return (true, 4);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn ld_immediate_value_8_bit(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn ld_immediate_value_8_bit(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     let register_index = LD_IMMEDIATE_VALUE_MAP.get(&instruction);
     if let Some(register_index) = register_index {
         let value = cpu.read_and_advance_program_counter();
         cpu.simple_registers[*register_index as usize] = value;
-        return (true, 8);
+        return true;
     }
     if instruction == 0x36 {
         let value = cpu.read_and_advance_program_counter();
         let address = cpu.read_hl_address();
         cpu.store_byte(address, value);
-        return (true, 12);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn ld_immediate_value_16_bit(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn ld_immediate_value_16_bit(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> bool {
     if second_half == 1 && first_half < 4 {
         let value = cpu.read_immediate_value_16();
         if first_half == 3 {
@@ -110,77 +110,77 @@ fn ld_immediate_value_16_bit(cpu: &mut Cpu, _: u8, first_half: u8, second_half: 
             cpu.write_combined_register(value, offset);
         }
 
-        return (true, 12);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn ldd_hl_a(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn ldd_hl_a(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0x32 {
         let address = cpu.read_hl_address();
         let a = cpu.accumulator;
         cpu.store_byte(address, a);
         cpu.write_combined_register(address.wrapping_sub(1), 4);
-        return (true, 8);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn ldd_a16_sp(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn ldd_a16_sp(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0x8 {
         let address = cpu.read_immediate_value_16();
         let stack_pointer = cpu.stack_pointer;
         cpu.store_byte(address, stack_pointer as u8);
         cpu.store_byte(address.wrapping_add(1), (stack_pointer >> 8) as u8);
-        return (true, 20);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn ldi_hl_a(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn ldi_hl_a(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0x22 {
         let address = cpu.read_hl_address();
         let a = cpu.accumulator;
         cpu.store_byte(address, a);
         cpu.write_combined_register(address.wrapping_add(1), 4);
-        return (true, 8);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn ldi_a_hl(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn ldi_a_hl(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0x2A {
         let address = cpu.read_hl_address();
         let value = cpu.read_hl();
         cpu.accumulator = value;
         cpu.write_combined_register(address.wrapping_add(1), 4);
-        return (true, 8);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn ldd_a_hl(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn ldd_a_hl(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0x3A {
         let address = cpu.read_hl_address();
         let value = cpu.read_hl();
         cpu.accumulator = value;
         cpu.write_combined_register(address.wrapping_sub(1), 4);
-        return (true, 8);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn ld_n_into_a(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn ld_n_into_a(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> bool {
     if first_half == 7 && second_half >= 0x8 {
         if second_half == 0xF {
             cpu.accumulator = cpu.accumulator;
         } else if second_half == 0xE {
             cpu.accumulator = cpu.read_hl();
-            return (true, 8);
+            return true;
         } else {
             cpu.accumulator = cpu.simple_registers[(second_half - 8) as usize];
         }
-        return (true, 4);
+        return true;
     }
 
     match instruction {
@@ -197,20 +197,20 @@ fn ld_n_into_a(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) 
             let address = cpu.read_immediate_value_16();
             let value = cpu.fetch_byte(address);
             cpu.accumulator = value;
-            return (true, 16);
+            return true;
         }
         0x3E => {
             let value = cpu.read_and_advance_program_counter();
             cpu.accumulator = value;
         }
         _ => {
-            return (false, 0);
+            return false;
         }
     }
-    return (true, 8);
+    return true;
 }
 
-fn ld_a_into_n(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn ld_a_into_n(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     let a = cpu.accumulator;
     match instruction {
         0x7F => {
@@ -237,31 +237,31 @@ fn ld_a_into_n(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
         0x02 => {
             let address = ((cpu.simple_registers[0] as u16) << 8) | cpu.simple_registers[1] as u16;
             cpu.store_byte(address, a);
-            return (true, 8);
+            return true;
         }
         0x12 => {
             let address = cpu.read_combined_register(2);
             cpu.store_byte(address, a);
-            return (true, 8);
+            return true;
         }
         0x77 => {
             let address = ((cpu.simple_registers[4] as u16) << 8) | cpu.simple_registers[5] as u16;
             cpu.store_byte(address, a);
-            return (true, 8);
+            return true;
         }
         0xEA => {
             let address = cpu.read_immediate_value_16();
             cpu.store_byte(address, a);
-            return (true, 16);
+            return true;
         }
         _ => {
-            return (false, 0);
+            return false;
         }
     }
-    (true, 4)
+    true
 }
 
-fn ld_r1_r2(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn ld_r1_r2(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> bool {
     if first_half >= 4 && first_half <= 6 {
         let offset: u32 = second_half as u32 / 8;
         let first_register_index: u32 = (first_half as u32 - 4) * 2 + offset;
@@ -270,9 +270,9 @@ fn ld_r1_r2(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> 
         if first_register_index == 6 {
             load_into_hl(cpu, instruction, second_register_index);
             if instruction == 0x36 {
-                return (true, 12);
+                return true;
             }
-            return (true, 8);
+            return true;
         } else if second_register_index < 6 {
             let value = cpu.simple_registers[second_register_index as usize];
             if first_register_index < 6 {
@@ -282,9 +282,9 @@ fn ld_r1_r2(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> 
             } else if first_register_index == 7 {
                 let address = cpu.read_hl_address();
                 cpu.store_byte(address, value);
-                return (true, 8);
+                return true;
             }
-            return (true, 4);
+            return true;
         } else if second_register_index == 6 {
             let address = cpu.read_hl_address();
             let value = cpu.fetch_byte(address);
@@ -297,71 +297,71 @@ fn ld_r1_r2(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> 
                 let value = cpu.read_and_advance_stack_pointer();
                 cpu.store_byte(address, value);
             }
-            return (true, 8);
+            return true;
         }
 
-        return (false, 0);
+        return false;
     }
-    (false, 0)
+    false
 }
 
-fn load_n_into_hl(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn load_n_into_hl(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> bool {
     if first_half == 0x7 && second_half <= 0x5 {
         let second_register_index: u32 = second_half as u32 % 8;
         load_into_hl(cpu, instruction, second_register_index);
-        return (true, 8);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn load_a_ff_c(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn load_a_ff_c(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0xF2 {
         let value = cpu
             .memory_map
             .fetch_byte(0xFF00 + cpu.simple_registers[1] as u16);
         cpu.accumulator = value;
-        return (true, 8);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn load_ff_c_a(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn load_ff_c_a(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0xE2 {
         let address = 0xFF00 | cpu.simple_registers[1] as u16;
         let a = cpu.accumulator;
         cpu.store_byte(address, a);
-        return (true, 8);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn ldh_n_a(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn ldh_n_a(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0xE0 {
         let address = 0xFF00 | cpu.read_and_advance_program_counter() as u16;
         let a = cpu.accumulator;
         cpu.store_byte(address, a);
-        return (true, 12);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn ldh_a_n(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn ldh_a_n(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0xF0 {
         let address = 0xFF00 | cpu.read_and_advance_program_counter() as u16;
         let value = cpu.fetch_byte(address);
         cpu.accumulator = value;
-        return (true, 12);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn ld_sp_hl(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn ld_sp_hl(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0xF9 {
         let value = cpu.read_hl_address();
         cpu.stack_pointer = value;
-        return (true, 8);
+        return true;
     }
-    (false, 0)
+    false
 }
 
 fn load_into_hl(cpu: &mut Cpu, instruction: u8, second_register_index: u32) {
@@ -377,7 +377,7 @@ fn load_into_hl(cpu: &mut Cpu, instruction: u8, second_register_index: u32) {
     }
 }
 
-fn compare(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn compare(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> bool {
     let from = cpu.accumulator.clone();
     let mut to = 0;
     let mut cycles = 0;
@@ -397,12 +397,12 @@ fn compare(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (
     }
     if cycles > 0 {
         subtract_and_set_flags(cpu, from, to);
-        return (true, cycles);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn subtract(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn subtract(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> bool {
     let a = cpu.accumulator;
     let (b, cycles) = if instruction == 0x97 {
         (cpu.accumulator, 4)
@@ -417,12 +417,12 @@ fn subtract(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> 
     };
     if cycles > 0 {
         cpu.accumulator = subtract_and_set_flags(cpu, a, b);
-        return (true, cycles);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn add_a_n(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn add_a_n(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> bool {
     let a = cpu.accumulator;
     let (b, cycles) = if instruction == 0x87 {
         (cpu.accumulator, 4)
@@ -437,51 +437,51 @@ fn add_a_n(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (
     };
     if cycles > 0 {
         cpu.accumulator = add_and_set_flags(cpu, a, b);
-        return (true, cycles);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn add_hl_n(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn add_hl_n(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> bool {
     if first_half <= 3 && second_half == 9 {
         let a = cpu.read_hl_address();
         let first_register = first_half * 2;
         let b = cpu.read_combined_register(first_register);
         let result = add_and_set_flags_16(cpu, a, b);
         cpu.write_combined_register(result, 4);
-        return (true, 8);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn jump(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn jump(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0xc3 {
         let value = cpu.read_immediate_value_16();
         cpu.load_pc(value);
-        return (true, 16);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn jump_a16(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn jump_a16(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0xC3 {
         let value = cpu.read_immediate_value_16();
         cpu.load_pc(value);
-        return (true, 4);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn jump_hl(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn jump_hl(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0xE9 {
         let value = cpu.read_hl_address();
         cpu.set_pc(value);
-        return (true, 4);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn jump_cc_n(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn jump_cc_n(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     let should_jump;
     match instruction {
         0x18 => {
@@ -496,7 +496,7 @@ fn jump_cc_n(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
         0x30 => should_jump = !cpu.flags[4],
         0x38 => should_jump = cpu.flags[4],
         _ => {
-            return (false, 0);
+            return false;
         }
     }
     // done here because the immediate value should not be interpreted as an opcode
@@ -505,12 +505,12 @@ fn jump_cc_n(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
         let pc = cpu.program_counter as i16;
         let value = pc.wrapping_add(distance as i16) as u16;
         cpu.load_pc(value);
-        return (true, 12);
+        return true;
     }
-    (true, 8)
+    true
 }
 
-fn jump_cc_nn(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn jump_cc_nn(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     let should_jump;
     match instruction {
         0xC2 => {
@@ -522,121 +522,121 @@ fn jump_cc_nn(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
         0xD2 => should_jump = !cpu.flags[4],
         0xDA => should_jump = cpu.flags[4],
         _ => {
-            return (false, 0);
+            return false;
         }
     }
     // done here because the immediate value should not be interpreted as an opcode
     let address = cpu.read_immediate_value_16();
     if should_jump {
         cpu.load_pc(address);
-        return (true, 16);
+        return true;
     }
-    (true, 12)
+    true
 }
 
-fn enable_interrupts(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn enable_interrupts(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0xFB {
         cpu.has_to_enable_interrupts_next = true;
-        return (true, 4);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn disable_interrupts(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn disable_interrupts(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0xF3 {
         cpu.disable_interrupts();
-        return (true, 4);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn call_immediate_16(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn call_immediate_16(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0xCD {
         let jump_to = cpu.read_immediate_value_16();
         let address = cpu.program_counter;
         cpu.push_stack(address);
         cpu.load_pc(jump_to);
-        return (true, 24);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn ret(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn ret(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0xC9 {
         do_return(cpu);
-        return (true, 16);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn ret_cc(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn ret_cc(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0xC0 {
         if !cpu.flags[7] {
             do_return(cpu);
         }
         cpu.delay(1);
-        return (true, 8);
+        return true;
     }
     if instruction == 0xC8 {
         if cpu.flags[7] {
             do_return(cpu);
         }
         cpu.delay(1);
-        return (true, 8);
+        return true;
     }
     if instruction == 0xD0 {
         if !cpu.flags[4] {
             do_return(cpu);
         }
         cpu.delay(1);
-        return (true, 8);
+        return true;
     }
     if instruction == 0xD8 {
         if cpu.flags[4] {
             do_return(cpu);
         }
         cpu.delay(1);
-        return (true, 8);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn reti(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn reti(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0xD9 {
         do_return(cpu);
         cpu.enable_interrupts();
-        return (true, 16);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-pub fn pop(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+pub fn pop(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> bool {
     if second_half == 1 && first_half >= 0xC {
         let value = cpu.pop_stack();
         cpu.write_combined_register(value, (first_half - 0xC) * 2);
-        return (true, 12);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-pub fn push(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+pub fn push(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> bool {
     if second_half == 5 && first_half >= 0xC {
         let value = cpu.read_combined_register((first_half - 0xC) * 2);
         cpu.push_stack(value);
         cpu.delay(1);
-        return (true, 16);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn increment(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn increment(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> bool {
     if first_half <= 3 && (second_half == 0xC || second_half == 0x4) {
         match instruction {
             0x3C => {
                 let value = cpu.accumulator.clone();
                 set_flags_for_increment(cpu, value);
                 cpu.accumulator = value.wrapping_add(1);
-                return (true, 4);
+                return true;
             }
             0x34 => {
                 let mut value = cpu.read_hl();
@@ -644,7 +644,7 @@ fn increment(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) ->
                 value = value.wrapping_add(1);
                 let address = cpu.read_hl_address();
                 cpu.store_byte(address, value);
-                return (true, 12);
+                return true;
             }
             _ => {
                 let register = (first_half * 2) + second_half / 8;
@@ -652,25 +652,25 @@ fn increment(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) ->
                 set_flags_for_increment(cpu, value);
                 let new_value = value.wrapping_add(1);
                 cpu.simple_registers[register as usize] = new_value;
-                return (true, 4);
+                return true;
             }
         }
     }
-    (false, 0)
+    false
 }
 
-fn increment_nn(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn increment_nn(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> bool {
     if second_half == 3 && first_half <= 3 {
         let first_register = first_half * 2;
         let value = cpu.read_combined_register(first_register).wrapping_add(1);
         cpu.write_combined_register(value, first_register);
         cpu.delay(1);
-        return (true, 8);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn decrement_n(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn decrement_n(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> bool {
     if first_half <= 3 && (second_half == 5 || second_half == 0xD) {
         if instruction == 0x3D {
             let value = cpu.accumulator;
@@ -681,45 +681,45 @@ fn decrement_n(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) 
             set_flags_for_decrement(cpu, value);
             let address = cpu.read_hl_address();
             cpu.store_byte(address, value.wrapping_sub(1));
-            return (true, 12);
+            return true;
         } else {
             let register = first_half * 2 + ((second_half - 5) / 8);
             let value = cpu.simple_registers[register as usize];
             set_flags_for_decrement(cpu, value);
             cpu.simple_registers[register as usize] = value.wrapping_sub(1);
         }
-        return (true, 4);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn decrement_nn(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn decrement_nn(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> bool {
     if first_half <= 3 && second_half == 0xB {
         let first_register = first_half * 2;
         let value = cpu.read_combined_register(first_register);
         cpu.write_combined_register(value.wrapping_sub(1), first_register);
         cpu.delay(1);
-        return (true, 8);
+        return true;
     } else if instruction == 0x3B {
         let value = cpu.stack_pointer;
         cpu.stack_pointer = value.wrapping_sub(1);
         cpu.delay(1);
-        return (true, 8);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn rla(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn rla(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0x17 {
         let new_value = rotate_left(cpu.accumulator, cpu);
         cpu.accumulator = new_value;
-        return (true, 4);
+        return true;
     }
 
-    (false, 0)
+    false
 }
 
-fn rlca(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn rlca(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0x7 {
         let a = cpu.accumulator;
         let c = a >> 7;
@@ -730,13 +730,13 @@ fn rlca(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
         cpu.flags[5] = false;
         cpu.flags[6] = false;
         cpu.flags[7] = false;
-        return (true, 4);
+        return true;
     }
 
-    (false, 0)
+    false
 }
 
-fn or(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn or(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> bool {
     let mut cycles = 0;
     let mut b = 0;
     if instruction == 0xB7 {
@@ -761,12 +761,12 @@ fn or(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool,
         let result = a | b;
         cpu.flags[7] = result == 0;
         cpu.accumulator = result;
-        return (true, cycles);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn and(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn and(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> bool {
     let mut cycles = 0;
     let mut b = 0;
     if instruction == 0xA7 {
@@ -791,29 +791,29 @@ fn and(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool
         let result = a & b;
         cpu.flags[7] = result == 0;
         cpu.accumulator = result;
-        return (true, cycles);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn xor(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn xor(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> bool {
     if first_half == 0xA {
         if second_half >= 0x8 && second_half <= 0xD {
             let value = cpu.simple_registers[(second_half - 8) as usize];
             cpu.accumulator = cpu.accumulator ^ value;
             set_flags_for_xor(cpu);
-            return (true, 4);
+            return true;
         }
         if second_half == 0xE {
             cpu.accumulator = cpu.accumulator ^ cpu.read_hl();
             set_flags_for_xor(cpu);
-            return (true, 8);
+            return true;
         }
 
         if second_half == 0xF {
             cpu.accumulator = cpu.accumulator ^ cpu.accumulator;
             set_flags_for_xor(cpu);
-            return (true, 4);
+            return true;
         }
     }
 
@@ -821,13 +821,13 @@ fn xor(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool
         let value = cpu.read_and_advance_program_counter();
         cpu.accumulator = cpu.accumulator ^ value;
         set_flags_for_xor(cpu);
-        return (true, 8);
+        return true;
     }
 
-    (false, 0)
+    false
 }
 
-fn daa(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn daa(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0x27 {
         let a = cpu.accumulator;
         let mut adjust = 0;
@@ -871,23 +871,23 @@ fn daa(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
         cpu.flags[7] = res == 0;
         cpu.flags[4] = adjust & 0x60 != 0;
         cpu.flags[5] = false;
-        return (true, 4);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn scf(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn scf(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0x37 {
         cpu.flags[4] = true;
         cpu.flags[5] = false;
         cpu.flags[6] = false;
-        return (true, 4);
+        return true;
     }
-    (false, 0)
+    false
 }
 
 /// Helper function to add two `u8`s with carry and update the CPU flags
-fn adc(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn adc(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> bool {
     let mut cycles = 0;
     let mut b = 0;
     if first_half == 0x8 && second_half >= 0x8 && second_half <= 0xD {
@@ -916,71 +916,69 @@ fn adc(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool
         cpu.flags[6] = false;
 
         cpu.accumulator = result_byte;
-        return (true, cycles);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn stop(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn stop(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0x10 {
         let _ = cpu.read_and_advance_program_counter();
         cpu.stop();
-        return (true, 4);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn cpl(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn cpl(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0x2F {
         let value = cpu.accumulator;
         cpu.accumulator = !value;
         cpu.flags[5] = true;
         cpu.flags[6] = true;
-        return (true, 4);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn rst(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn rst(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> bool {
     if first_half >= 0xC && (second_half == 0x7 || second_half == 0xF) {
         let address = ((first_half - 0xC) << 4) | (second_half - 7);
         let program_counter = cpu.program_counter;
         cpu.push_stack(program_counter);
         cpu.load_pc(address as u16);
-        return (true, 16);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn halt(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn halt(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0x76 {
         cpu.halted = true;
-        return (true, 4);
+        return true;
     }
-    (false, 0)
+    false
 }
 
 /*************************\
 *        PREFIX_CB
 **************************/
-fn prefix_cb(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> (bool, u8) {
+fn prefix_cb(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0xCB {
         let new_instruction_code = cpu.read_and_advance_program_counter();
         trace!("about to run cb opcode {:x}\n", new_instruction_code);
         let (first_half, second_half) = split_into_halves(new_instruction_code);
         for instruction in PREFIX_CB_INSTRUCTIONS_PIPELINE.iter() {
-            let (found_instruction, cycles) =
-                instruction(cpu, new_instruction_code, first_half, second_half);
-            if found_instruction {
-                return (true, cycles);
+            if instruction(cpu, new_instruction_code, first_half, second_half) {
+                return true;
             }
         }
         panic!("unsupported prefix cb opcode {:x}\n", new_instruction_code);
     }
-    (false, 0)
+    false
 }
 
-fn test_bit(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn test_bit(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> bool {
     if first_half >= 4 && first_half <= 7 {
         let bit_index: u8 = (first_half - 4) * 2 + second_half / 8;
         let register_index = second_half % 8;
@@ -999,56 +997,56 @@ fn test_bit(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> (bool, u8)
         if cycles != 0 {
             let c = cpu.flags[4];
             cpu.flags = [false, false, false, false, c, true, false, bit_is_zero];
-            return (true, cycles);
+            return true;
         }
     }
-    (false, 0)
+    false
 }
 
-fn rl_n(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn rl_n(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> bool {
     if first_half == 1 && second_half <= 7 {
         if second_half == 6 {
             let new_value = rotate_left(cpu.read_hl(), cpu);
             let address = cpu.read_hl_address();
             cpu.store_byte(address, new_value);
-            return (true, 16);
+            return true;
         } else if second_half == 7 {
             cpu.accumulator = rotate_left(cpu.accumulator, cpu);
         } else {
             let new_value = rotate_left(cpu.simple_registers[first_half as usize], cpu);
             cpu.simple_registers[first_half as usize] = new_value;
         }
-        return (true, 8);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn swap(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn swap(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> bool {
     let value;
     if first_half == 3 && second_half <= 5 {
         value = cpu.simple_registers[first_half as usize];
         let swapped = swap_nibles(value);
         cpu.simple_registers[first_half as usize] = swapped;
         set_flags_for_swap(cpu, swapped);
-        return (true, 8);
+        return true;
     } else if instruction == 0x37 {
         value = cpu.accumulator;
         let swapped = swap_nibles(value);
         cpu.accumulator = swapped;
         set_flags_for_swap(cpu, swapped);
-        return (true, 8);
+        return true;
     } else if instruction == 0x36 {
         value = cpu.read_hl();
         let swapped = swap_nibles(value);
         let address = cpu.read_hl_address();
         cpu.store_byte(address, swapped);
         set_flags_for_swap(cpu, swapped);
-        return (true, 16);
+        return true;
     }
-    (false, 0)
+    false
 }
 
-fn res(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn res(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> bool {
     if first_half >= 0x8 && first_half <= 0xB {
         let bit = (first_half - 8) * 2 + second_half / 8;
         let register_index = second_half % 8;
@@ -1056,42 +1054,42 @@ fn res(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> (bool, u8) {
         if register_index <= 5 {
             let value = cpu.simple_registers[register_index as usize];
             cpu.simple_registers[register_index as usize] = calculate_res(value, bit);
-            return (true, 8);
+            return true;
         } else if register_index == 6 {
             let value = cpu.read_hl();
             let address = cpu.read_hl_address();
             cpu.store_byte(address, calculate_res(value, bit));
-            return (true, 16);
+            return true;
         } else if register_index == 7 {
             let value = cpu.accumulator;
             cpu.accumulator = calculate_res(value, bit);
-            return (true, 8);
+            return true;
         }
     }
-    (false, 0)
+    false
 }
 
-fn sla(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn sla(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> bool {
     if first_half == 0x2 && second_half <= 7 {
         if second_half == 6 {
             let value = cpu.read_hl();
             let result = calculate_sla_and_set_flags(cpu, value);
             let address = cpu.read_hl_address();
             cpu.store_byte(address, result);
-            return (true, 16);
+            return true;
         } else if second_half == 7 {
             let value = cpu.accumulator;
             let result = calculate_sla_and_set_flags(cpu, value);
             cpu.accumulator = result;
-            return (true, 8);
+            return true;
         } else {
             let value = cpu.simple_registers[second_half as usize];
             let result = calculate_sla_and_set_flags(cpu, value);
             cpu.simple_registers[second_half as usize] = result;
-            return (true, 8);
+            return true;
         }
     }
-    (false, 0)
+    false
 }
 
 /// Shift `A` to the left
@@ -1108,7 +1106,7 @@ fn calculate_sla_and_set_flags(cpu: &mut self::Cpu, v: u8) -> u8 {
     r
 }
 
-fn set(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn set(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> bool {
     if first_half >= 0xC {
         let bit = (first_half - 0xC) * 2 + second_half / 8;
         let register_index = second_half % 8;
@@ -1116,46 +1114,46 @@ fn set(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> (bool, u8) {
         if register_index <= 5 {
             let value = cpu.simple_registers[register_index as usize];
             cpu.simple_registers[register_index as usize] = calculate_set(value, bit);
-            return (true, 8);
+            return true;
         } else if register_index == 6 {
             let value = cpu.read_hl();
             let address = cpu.read_hl_address();
             cpu.store_byte(address, calculate_set(value, bit));
-            return (true, 16);
+            return true;
         } else if register_index == 7 {
             let value = cpu.accumulator;
             cpu.accumulator = calculate_set(value, bit);
-            return (true, 8);
+            return true;
         }
     }
-    (false, 0)
+    false
 }
 
 fn calculate_set(val: u8, bit: u8) -> u8 {
     val | (1u8 << (bit as usize))
 }
 
-fn srl(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> (bool, u8) {
+fn srl(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> bool {
     if first_half == 0x3 && second_half >= 8 {
         if second_half == 0xE {
             let value = cpu.read_hl();
             let result = calculate_srl(cpu, value);
             let address = cpu.read_hl_address();
             cpu.store_byte(address, result);
-            return (true, 16);
+            return true;
         } else if second_half == 0xF {
             let value = cpu.accumulator;
             let result = calculate_srl(cpu, value);
             cpu.accumulator = result;
-            return (true, 8);
+            return true;
         } else {
             let value = cpu.simple_registers[(second_half + 8) as usize];
             let result = calculate_srl(cpu, value);
             cpu.simple_registers[(second_half + 8) as usize] = result;
-            return (true, 8);
+            return true;
         }
     }
-    (false, 0)
+    false
 }
 
 fn calculate_srl(cpu: &mut self::Cpu, v: u8) -> u8 {

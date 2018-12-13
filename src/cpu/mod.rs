@@ -242,9 +242,7 @@ impl<'n> CanRunInstruction for Cpu<'n> {
         trace!("about to run instruction {:x}\n", instruction_code);
         let (first_half, second_half) = split_into_halves(instruction_code);
         for instruction in INSTRUCTIONS_PIPELINE.iter() {
-            let (found_instruction, _) =
-                instruction(self, instruction_code, first_half, second_half);
-            if found_instruction {
+            if instruction(self, instruction_code, first_half, second_half) {
                 return self.instruction_cycles;
             }
         }
