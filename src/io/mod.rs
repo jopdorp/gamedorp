@@ -215,6 +215,7 @@ impl<'a> Interconnect<'a> {
             self.timer.ack_interrupt();
             Some(Interrupt::Timer)
         } else if self.it_enabled.button && self.buttons.interrupt() {
+            // TODO: test
             self.buttons.ack_interrupt();
             Some(Interrupt::Button)
         } else {
