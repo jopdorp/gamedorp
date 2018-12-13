@@ -16,6 +16,8 @@ pub struct Buttons<'a> {
     buttons_selected: bool,
     /// Abstract interface to the actual UI
     buttons: &'a Cell<::ui::Buttons>,
+    last_input: u8,
+    interrupt_sent:bool
 }
 
 impl<'a> Buttons<'a> {
@@ -24,6 +26,8 @@ impl<'a> Buttons<'a> {
             directions_selected: false,
             buttons_selected: false,
             buttons: buttons,
+            last_input: 0,
+            interrupt_sent: true
         }
     }
 
@@ -53,11 +57,17 @@ impl<'a> Buttons<'a> {
             active |= (buttons.select.is_down() as u8) << 2;
             active |= (buttons.start.is_down() as u8) << 3;
         }
-
         // Now we can complement the value and return it
         !active
     }
 
+    pub fn interrupt(&self) -> bool {
+        self.interrupt_sent || self.input() != self.last_input
+    }
+
+    pub fn ack_interrupt(&mut self) {
+        self.interrupt_sent = false;
+    }
     pub fn set_input(&mut self, val: u8) {
         // We select the lines by setting the bit to 0
         self.directions_selected = val & 0x10 == 0;

@@ -108,6 +108,7 @@ impl<'a> Cpu<'a> {
             Interrupt::VBlank => 0x40,
             Interrupt::Lcdc => 0x48,
             Interrupt::Timer => 0x50,
+            Interrupt::Button => 0x60
         };
 
         // Push current value to stack

@@ -131,8 +131,9 @@ impl Controller {
         let mut b = self.buttons.get();
 
         match button {
-            Button::A => b.a = state,
-            Button::B => b.b = state,
+            //gameboy has a nd b swapped
+            Button::B => b.a = state,
+            Button::A => b.b = state,
             Button::DPadLeft => b.left = state,
             Button::DPadRight => b.right = state,
             Button::DPadUp => b.up = state,

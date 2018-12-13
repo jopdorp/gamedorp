@@ -214,6 +214,9 @@ impl<'a> Interconnect<'a> {
         } else if self.it_enabled.timer && self.timer.interrupt() {
             self.timer.ack_interrupt();
             Some(Interrupt::Timer)
+        } else if self.it_enabled.button && self.buttons.interrupt() {
+            self.buttons.ack_interrupt();
+            Some(Interrupt::Button)
         } else {
             None
         }
@@ -404,7 +407,9 @@ pub enum Interrupt {
     Lcdc,
     /// Timer overflow
     Timer,
-    // TODO: implement other interrupts
+    /// Button pressed
+    Button
+    // TODO: implement serial
 }
 
 /// GB Interrupts, from highest to lowest priority
