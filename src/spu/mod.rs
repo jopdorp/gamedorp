@@ -740,7 +740,7 @@ pub const SAMPLE_RATE: u32 = ::SYSCLK_FREQ as u32 / SAMPLER_DIVIDER;
 /// backend. If the channel is ever full it'll prevent the SPU from
 /// queuing new samples which will will cause the audio samples to be
 /// dropped.
-const CHANNEL_DEPTH: usize = 64;
+const CHANNEL_DEPTH: usize = 4;
 
 /// Maximum possible volume for a single sound
 const SOUND_MAX: Sample = 15;
