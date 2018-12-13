@@ -18,6 +18,7 @@ impl Display {
         let yres = 144 * upscale as u32;
 
         let video_subsystem = sdl2.video().unwrap();
+        video_subsystem.gl_set_swap_interval(SwapInterval::VSync);
         let window = video_subsystem
             .window("gb-rs", xres, yres)
             .opengl()
@@ -29,6 +30,7 @@ impl Display {
         let canvas = window
             .into_canvas()
             .accelerated()
+            .present_vsync()
             .build()
             .unwrap();
 
