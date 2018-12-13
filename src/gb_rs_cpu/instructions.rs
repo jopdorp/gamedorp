@@ -340,9 +340,7 @@ fn nop(_: &mut self::Cpu) {
 fn undefined(cpu: &mut self::Cpu) {
     let pc = cpu.pc().wrapping_sub(1);
 
-    println!("Invalid instruction called at 0x{:04x}. CPU stalled.", pc);
-
-    cpu.set_pc(pc);
+    panic!("Invalid instruction called at 0x{:04x}.", pc);
 }
 
 /// Rotate `A` left

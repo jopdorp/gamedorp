@@ -53,33 +53,42 @@ impl<'a> Cpu<'a> {
         }
     }
 
+
+
     pub fn read_and_advance_program_counter(&mut self) -> u8 {
-        let instruction_code= self.memory_map.fetch_byte(self.program_counter);
+        let pc = self.program_counter;
+        let instruction_code= self.fetch_byte(pc);
         self.program_counter = self.program_counter.wrapping_add(1);
         return instruction_code;
     }
 
 
     pub fn read_and_advance_stack_pointer(&mut self) -> u8 {
-        let value= self.memory_map.fetch_byte(self.stack_pointer);
+        let sp = self.stack_pointer;
+        let value= self.fetch_byte(sp);
         self.stack_pointer += 1;
         value
     }
 
     pub fn push_stack(&mut self, value:u16) {
         trace!("pushing 0x{:x} onto the stack\n", value);
-        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
-        self.memory_map.store_byte(self.stack_pointer, ((value & 0xFF00) >> 8) as u8);
-        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
-        self.memory_map.store_byte(self.stack_pointer, (value & 0x00FF) as u8);
+        let sp = self.stack_pointer.wrapping_sub(1);
+        self.stack_pointer = sp;
+        self.store_byte(sp, ((value & 0xFF00) >> 8) as u8);
+        let sp = self.stack_pointer.wrapping_sub(1);
+        self.stack_pointer = sp;
+        self.store_byte(sp, (value & 0x00FF) as u8);
     }
 
 
     pub fn pop_stack(&mut self) -> u16 {
-        let lower = self.memory_map.fetch_byte(self.stack_pointer);
-        self.stack_pointer = self.stack_pointer.wrapping_add(1);
-        let higher = ((self.memory_map.fetch_byte(self.stack_pointer) as u16) << 8) as u16;
-        self.stack_pointer = self.stack_pointer.wrapping_add(1);
+        let sp = self.stack_pointer;
+        let lower = self.fetch_byte(sp);
+        let sp = self.stack_pointer.wrapping_add(1);
+        self.stack_pointer = sp;
+        let higher = ((self.fetch_byte(sp) as u16) << 8) as u16;
+        let sp = self.stack_pointer.wrapping_add(1);
+        self.stack_pointer = sp;
         trace!("popped 0x{:x} from the stack\n",higher | lower as u16);
         higher | lower as u16
     }
@@ -90,20 +99,23 @@ impl<'a> Cpu<'a> {
         register = value;
     }
 
-    pub fn read_hl(&self) -> u8 {
-        self.memory_map.fetch_byte(self.read_hl_address())
+    pub fn read_hl(&mut self) -> u8 {
+        let address = self.read_hl_address();
+        self.fetch_byte(address)
     }
 
     pub fn read_hl_address(&self) -> u16 {
         self.read_combined_register(4)
     }
 
-    pub fn read_de(&self) -> u8 {
-        self.memory_map.fetch_byte(self.read_combined_register(2))
+    pub fn read_de(&mut self) -> u8 {
+        let address = self.read_combined_register(2);
+        self.fetch_byte(address)
     }
 
-    pub fn read_bc(&self) -> u8 {
-        self.memory_map.fetch_byte(self.read_combined_register(0))
+    pub fn read_bc(&mut self) -> u8 {
+        let address = self.read_combined_register(0);
+        self.fetch_byte(address)
     }
 
     pub fn read_combined_register(&self, first_register:u8) -> u16{
@@ -179,7 +191,7 @@ impl<'a> Cpu<'a> {
         // Push current value to stack
         let pc = self.program_counter;
         self.push_stack(pc);
-
+        self.delay(6);
         // Jump to IT handler
         self.program_counter = handler_addr;
     }
@@ -188,26 +200,65 @@ impl<'a> Cpu<'a> {
         panic!("STOP is not implemented");
     }
 
+    fn delay(&mut self, machine_cycles: u8) {
+        self.advance(machine_cycles * 4);
+    }
+
+    /// Advance the rest of the emulator state. `cycles` is given in
+    /// system clock periods.
+    fn advance(&mut self, cycles: u8) {
+        for _ in 0..cycles {
+            self.memory_map.step();
+        }
+
+        self.instruction_cycles += cycles;
+    }
+
+    /// Fetch byte at `addr` from the interconnect. Takes one machine
+       /// cycle.
+    fn fetch_byte(&mut self, addr: u16) -> u8 {
+        let b = self.memory_map.fetch_byte(addr);
+
+        self.delay(1);
+
+        b
+    }
+
+    /// Store byte `val` at `addr` in the interconnect. Takes one
+    /// machine cycle.
+    fn store_byte(&mut self, addr: u16, val: u8) {
+        self.memory_map.store_byte(addr, val);
+
+        self.delay(1);
+    }
+
+
+    /// Load value into `PC` register. Takes one machine cycle
+    fn load_pc(&mut self, pc: u16) {
+        self.set_pc(pc);
+
+        self.delay(1);
+    }
+
+    /// Set value of the `PC` register
+    fn set_pc(&mut self, pc: u16) {
+        self.program_counter = pc;
+    }
 }
 
 impl<'n> CanRunInstruction for Cpu<'n> {
     fn run_next_instruction(&mut self) -> u8 {
 
-
-        let mut extra_cycles_for_interrupt = 0;
+        self.instruction_cycles = 0;
 
         if self.iten {
             if let Some(it) = self.memory_map.next_interrupt_ack() {
                 // We have a pending interrupt!
                 self.interrupt(it);
-                extra_cycles_for_interrupt += 32;
-                for _ in 0..extra_cycles_for_interrupt {
-                    self.memory_map.step();
-                }
                 // Wait until the context switch delay is over. We're
                 // sure not to reenter here after that since the
                 // `iten` is set to false in `self.interrupt`
-                return extra_cycles_for_interrupt;
+                return self.instruction_cycles;
             }
         } else if self.iten_enable_next {
             self.iten = true;
@@ -215,7 +266,7 @@ impl<'n> CanRunInstruction for Cpu<'n> {
 
         if self.halted {
             self.memory_map.step();
-            extra_cycles_for_interrupt += 1;
+            self.instruction_cycles += 1;
 
             // Check if we have a pending interrupt because even if
             // `iten` is false HALT returns when an IT is triggered
@@ -224,7 +275,7 @@ impl<'n> CanRunInstruction for Cpu<'n> {
                 self.halted = false;
             } else {
                 // Wait for interrupt
-                return extra_cycles_for_interrupt;
+                return self.instruction_cycles;
             }
         }
 
@@ -236,12 +287,8 @@ impl<'n> CanRunInstruction for Cpu<'n> {
         let instruction_code= self.read_and_advance_program_counter();
         trace!("about to run instruction {:x}\n", instruction_code);
         for instruction in INSTRUCTIONS_PIPELINE.iter() {
-            let (found_instruction, clock_cycles) = instruction(self, instruction_code);
+            let (found_instruction, _) = instruction(self, instruction_code);
             if found_instruction {
-                for _ in 0..clock_cycles {
-                    self.memory_map.step();
-                }
-
                 // just for debugging
                 if self.last_instruction_codes.len() > 100 {
                     let _ = self.last_instruction_codes.pop();
@@ -258,7 +305,7 @@ impl<'n> CanRunInstruction for Cpu<'n> {
                 self.last_instruction_codes = instr.to_vec();
                 self.last_pcs = pcs.to_vec();
 
-                return clock_cycles;
+                return self.instruction_cycles;
             }
         }
 
@@ -267,7 +314,9 @@ impl<'n> CanRunInstruction for Cpu<'n> {
                     value,self.last_pcs[i]);
 
         }
+//        self.delay(1);
         panic!("unsupported opcode 0x{:x} at pc 0x{:x}\n", instruction_code, last_pc);
+//        return self.instruction_cycles;
     }
 }
 
