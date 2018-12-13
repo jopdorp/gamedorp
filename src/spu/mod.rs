@@ -718,7 +718,7 @@ pub type SampleBuffer = [Sample; SAMPLES_PER_BUFFER];
 /// We buffer the sound samples before we send them to the next
 /// stage. Bigger buffers will reduce the contention on the channel
 /// but it will also increase latency.
-pub const SAMPLES_PER_BUFFER: usize = 0x200;
+pub const SAMPLES_PER_BUFFER: usize = 0xA0;
 
 /// This variable says how many SysClk cycles to wait between each
 /// sound sample. In other words, SYSCLK_FREQ / SAMPLER_DIVIDER gives
@@ -740,7 +740,7 @@ pub const SAMPLE_RATE: u32 = ::SYSCLK_FREQ as u32 / SAMPLER_DIVIDER;
 /// backend. If the channel is ever full it'll prevent the SPU from
 /// queuing new samples which will will cause the audio samples to be
 /// dropped.
-const CHANNEL_DEPTH: usize = 4;
+const CHANNEL_DEPTH: usize = 64;
 
 /// Maximum possible volume for a single sound
 const SOUND_MAX: Sample = 15;
