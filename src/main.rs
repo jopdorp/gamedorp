@@ -75,7 +75,7 @@ fn main() {
 
     let batch_duration_ns = GRANULARITY * (1_000_000_000 / SYSCLK_FREQ);
     // No sub-ms precision in stable rust sleep for now...
-    let batch_duration_ms = Duration::new(0, batch_duration_ns as u32 / 1_000_000);
+    let batch_duration_ms = Duration::new(0, batch_duration_ns as u32);
     let (tick_tx, tick_rx) = channel();
     // Spawn a thread that will send periodic ticks that we'll use to
     // synchronize ourselves
