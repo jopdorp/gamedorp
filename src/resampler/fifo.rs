@@ -9,7 +9,7 @@ pub struct Fifo<T> {
 impl<T: Default + Copy> Fifo<T> {
     pub fn new() -> Fifo<T> {
         Fifo {
-            buffer: [ Default::default(); BUFFER_SIZE ],
+            buffer: [Default::default(); BUFFER_SIZE],
             windex: Index::new(),
             rindex: Index::new(),
         }
@@ -18,15 +18,13 @@ impl<T: Default + Copy> Fifo<T> {
     pub fn empty(&self) -> bool {
         // The fifo is empty if the indexes point to the same position
         // and have the same carry
-        self.windex.get() == self.rindex.get() &&
-            self.windex.carry() == self.rindex.carry()
+        self.windex.get() == self.rindex.get() && self.windex.carry() == self.rindex.carry()
     }
 
     pub fn full(&self) -> bool {
         // The fifo is full if the indexes point to the same position
         // and have different carries
-        self.windex.get() == self.rindex.get() &&
-            self.windex.carry() != self.rindex.carry()
+        self.windex.get() == self.rindex.get() && self.windex.carry() != self.rindex.carry()
     }
 
     pub fn push(&mut self, val: T) -> Result<(), ()> {
@@ -62,7 +60,7 @@ impl<T: Default + Copy> Fifo<T> {
     }
 }
 
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 struct Index(usize);
 
 impl Index {
@@ -90,7 +88,6 @@ impl Index {
     }
 }
 
-
 impl ::std::ops::Sub for Index {
     type Output = usize;
 
@@ -107,6 +104,6 @@ impl ::std::ops::Sub for Index {
 }
 
 /// Logarithm in base 2 of the buffer size.
-const BUFFER_SIZE_LN:   usize = 11;
+const BUFFER_SIZE_LN: usize = 11;
 
-const BUFFER_SIZE:      usize = 1 << BUFFER_SIZE_LN;
+const BUFFER_SIZE: usize = 1 << BUFFER_SIZE_LN;

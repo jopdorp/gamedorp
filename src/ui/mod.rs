@@ -31,7 +31,7 @@ pub enum Event {
 }
 
 /// Description of a button's state
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum ButtonState {
     /// Key is pushed down
     Down,
@@ -43,22 +43,22 @@ impl ButtonState {
     pub fn is_down(self) -> bool {
         match self {
             ButtonState::Down => true,
-            _                 => false,
+            _ => false,
         }
     }
 }
 
 /// State of all the GB buttons
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Buttons {
-    pub up:        ButtonState,
-    pub down:      ButtonState,
-    pub left:      ButtonState,
-    pub right:     ButtonState,
-    pub a:         ButtonState,
-    pub b:         ButtonState,
-    pub start:     ButtonState,
-    pub select:    ButtonState,
+    pub up: ButtonState,
+    pub down: ButtonState,
+    pub left: ButtonState,
+    pub right: ButtonState,
+    pub a: ButtonState,
+    pub b: ButtonState,
+    pub start: ButtonState,
+    pub select: ButtonState,
     /// State of the interrupt that occurs at the moment a button is
     /// pressed
     pub interrupt: bool,
@@ -67,14 +67,14 @@ pub struct Buttons {
 impl Buttons {
     pub fn new(default_state: ButtonState) -> Buttons {
         Buttons {
-            a:         default_state,
-            b:         default_state,
-            start:     default_state,
-            select:    default_state,
-            up:        default_state,
-            down:      default_state,
-            left:      default_state,
-            right:     default_state,
+            a: default_state,
+            b: default_state,
+            start: default_state,
+            select: default_state,
+            up: default_state,
+            down: default_state,
+            left: default_state,
+            right: default_state,
             interrupt: false,
         }
     }
@@ -90,14 +90,11 @@ pub mod dummy {
     pub struct DummyDisplay;
 
     impl super::Display for DummyDisplay {
-        fn clear(&mut self) {
-        }
+        fn clear(&mut self) {}
 
-        fn set_pixel(&mut self, _: u32, _: u32, _: ::gpu::Color) {
-        }
+        fn set_pixel(&mut self, _: u32, _: u32, _: ::gpu::Color) {}
 
-        fn flip(&mut self) {
-        }
+        fn flip(&mut self) {}
     }
 
     pub struct DummyController {

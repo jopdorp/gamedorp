@@ -1,8 +1,8 @@
-use std::sync::Arc;
-use std::sync::mpsc::Receiver;
+use resampler::{Async, Resampler};
+use sdl2::audio::{AudioCallback, AudioDevice, AudioSpecDesired};
 use sdl2::Sdl;
-use sdl2::audio::{AudioDevice, AudioCallback, AudioSpecDesired};
-use resampler::{Resampler, Async};
+use std::sync::mpsc::Receiver;
+use std::sync::Arc;
 
 /// Reader struct used to feed the samples to the SDL callback
 struct Reader {
@@ -26,13 +26,12 @@ impl AudioCallback for Reader {
 }
 
 pub struct Audio {
-    dev:   AudioDevice<Reader>,
-    async: Arc<Async<Sample>>
+    dev: AudioDevice<Reader>,
+    async: Arc<Async<Sample>>,
 }
 
 impl Audio {
-    pub fn new(channel: Receiver<::spu::SampleBuffer>, sdl2: &Sdl ) -> Audio {
-
+    pub fn new(channel: Receiver<::spu::SampleBuffer>, sdl2: &Sdl) -> Audio {
         let resampler = Resampler::new(channel, SAMPLE_RATE);
 
         let async = resampler.async();
@@ -40,21 +39,19 @@ impl Audio {
         let reader = Reader::new(resampler);
 
         let spec = AudioSpecDesired {
-            freq:     Some(SAMPLE_RATE as i32),
+            freq: Some(SAMPLE_RATE as i32),
             channels: Some(1),
-            samples:  Some(::spu::SAMPLES_PER_BUFFER as u16),
+            samples: Some(::spu::SAMPLES_PER_BUFFER as u16),
         };
 
         let audio_subsystem = sdl2.audio().unwrap();
-        let dev =  match audio_subsystem.open_playback(None,
-                                                       &spec,
-                                                       |_| reader) {
-            Ok(d)  => d,
+        let dev = match audio_subsystem.open_playback(None, &spec, |_| reader) {
+            Ok(d) => d,
             Err(e) => panic!("{}", e),
         };
 
         Audio {
-            dev:   dev,
+            dev: dev,
             async: async,
         }
     }

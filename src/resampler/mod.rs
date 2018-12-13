@@ -1,10 +1,10 @@
 //! Resampler implementation, used to adapt the sound samples to the
 //! output sample rate.
 
-use std::sync::{Arc, Mutex, Condvar};
-use std::sync::mpsc::Receiver;
+use num::{Bounded, FromPrimitive, Integer};
 use std::default::Default;
-use num::{Integer, Bounded, FromPrimitive};
+use std::sync::mpsc::Receiver;
+use std::sync::{Arc, Condvar, Mutex};
 
 use spu::SampleBuffer;
 
@@ -15,18 +15,18 @@ mod fifo;
 mod worker;
 
 pub struct Resampler<T: Send> {
-    async:       Arc<Async<T>>,
+    async: Arc<Async<T>>,
     last_sample: T,
 }
 
 impl<T> Resampler<T>
-    where T: Copy + Send + Default + Integer
-             + Bounded + FromPrimitive + 'static {
+where
+    T: Copy + Send + Default + Integer + Bounded + FromPrimitive + 'static,
+{
     pub fn new(source: Receiver<SampleBuffer>, rate: u32) -> Resampler<T> {
         let async = Arc::new(Async::new(rate));
 
-        let mut async_resampler = AsyncResampler::new(source,
-                                                      async.clone());
+        let mut async_resampler = AsyncResampler::new(source, async.clone());
 
         // Spawn the asynchronous resampler thread
         ::std::thread::spawn(move || {
@@ -35,7 +35,7 @@ impl<T> Resampler<T>
         });
 
         Resampler {
-            async:      async,
+            async: async,
             last_sample: Default::default(),
         }
     }
@@ -46,16 +46,14 @@ impl<T> Resampler<T>
         atomic.out_samples += buf.len() as u32;
 
         for sample in buf.iter_mut() {
-            let new_sample =
-                match atomic.fifo.pop() {
-                    Some(s) => s,
-                    // Fifo is empty, duplicate the last sample
-                    None    => self.last_sample,
-                };
-
+            let new_sample = match atomic.fifo.pop() {
+                Some(s) => s,
+                // Fifo is empty, duplicate the last sample
+                None => self.last_sample,
+            };
 
             self.last_sample = new_sample;
-            *sample          = new_sample;
+            *sample = new_sample;
         }
 
         // Notify the writer that we made some room in the FIFO
@@ -69,17 +67,17 @@ impl<T> Resampler<T>
 
 /// Part of the `ASync` state that must be accessed atomically
 struct Atomic<T: Send> {
-    fifo:         Fifo<T>,
+    fifo: Fifo<T>,
     /// Number of samples requested by the backend since the last
     /// adjustment (even missed samples in case of empty FIFO
     /// count!). Used to compute the average output sample rate.
-    out_samples:  u32,
+    out_samples: u32,
     /// Sampling ratio: emulator sampling rate / target sampling
     /// rate. Will be adjusted at runtime based on the computed
     /// average sample rate
-    ratio:        f32,
+    ratio: f32,
     /// Resampling ratio estimation state machine
-    training:     Training,
+    training: Training,
 }
 
 /// State shared between the main thread, the SDL2 callback and the
@@ -88,28 +86,29 @@ pub struct Async<T: Send> {
     /// Atomic access substructure
     atomic: Mutex<Atomic<T>>,
     /// Convar used when waiting on the atomic FIFO
-    stall:  Condvar,
+    stall: Condvar,
 }
 
 impl<T> Async<T>
-    where T: Copy + Send + Default + Integer + FromPrimitive + 'static {
+where
+    T: Copy + Send + Default + Integer + FromPrimitive + 'static,
+{
     fn new(rate: u32) -> Async<T> {
         // Initial educated guess for the sampling ratio. This is just
         // used while starting up, it'll be replaced by the measured
         // ratio soon enough.
         let ratio = ::spu::SAMPLE_RATE as f32 / rate as f32;
 
-        let atomic =
-            Atomic {
-                fifo:         Fifo::new(),
-                out_samples:  0,
-                ratio:        ratio,
-                training:     Training::Init(2),
-            };
+        let atomic = Atomic {
+            fifo: Fifo::new(),
+            out_samples: 0,
+            ratio: ratio,
+            training: Training::Init(2),
+        };
 
         Async {
             atomic: Mutex::new(atomic),
-            stall:  Condvar::new(),
+            stall: Condvar::new(),
         }
     }
 
@@ -134,17 +133,18 @@ impl<T> Async<T>
                 // wait for the next
                 let c = c - 1;
 
-                atomic.training =
-                    if c > 0 {
-                        Training::Init(c)
-                    } else {
-                        Training::Measure
-                    }
+                atomic.training = if c > 0 {
+                    Training::Init(c)
+                } else {
+                    Training::Measure
+                }
             }
             Training::Measure => {
                 // Our first real sample, let's use this value directly
-                info!("Measured sound sample rate: {}Hz",
-                      (::spu::SAMPLE_RATE as f32 / r));
+                info!(
+                    "Measured sound sample rate: {}Hz",
+                    (::spu::SAMPLE_RATE as f32 / r)
+                );
 
                 atomic.ratio = r;
                 atomic.training = Training::Adjust;
@@ -167,7 +167,7 @@ impl<T> Async<T>
 }
 
 /// Sample Rate training
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 enum Training {
     /// We're starting, the measured sample rate is probably not
     /// trustworthy

@@ -2,53 +2,52 @@
 //! with an envelope function. Channel 1 can also sweep through a
 //! frequency range.
 
-use spu::{Sample, Mode};
 use spu::envelope::Envelope;
+use spu::{Mode, Sample};
 
 pub struct RectangleWave {
     /// True if the sound is generating samples
-    running:        bool,
+    running: bool,
     /// Signal duty cycle
-    duty:           DutyCycle,
+    duty: DutyCycle,
     /// Period counter, the period length is configurable and is used
     /// to select the desired output frequency. This counter loops 8
     /// times per cycle to let us generate the proper duty cycle.
-    counter:        u16,
+    counter: u16,
     /// Divider value configured in the registers. The actual divider
     /// value used for the counter is 4 x (0x800 - <this value>)
-    divider:        u16,
+    divider: u16,
     /// Phase counter, increments 8 times per sound period
-    phase:          u8,
+    phase: u8,
     /// Enveloppe that will be used at the next start()
     start_envelope: Envelope,
     /// Active envelope
-    envelope:       Envelope,
+    envelope: Envelope,
     /// Play mode (continuous or counter)
-    mode:           Mode,
+    mode: Mode,
     /// Counter for counter mode
-    remaining:      u32,
+    remaining: u32,
     /// Sweep function (only available on sound 1)
-    sweep:          Sweep,
+    sweep: Sweep,
 }
 
 impl RectangleWave {
     pub fn new() -> RectangleWave {
         RectangleWave {
-            running:        false,
-            duty:           DutyCycle::from_field(0),
-            counter:        0,
-            divider:        0,
-            phase:          0,
+            running: false,
+            duty: DutyCycle::from_field(0),
+            counter: 0,
+            divider: 0,
+            phase: 0,
             start_envelope: Envelope::from_reg(0),
-            envelope:       Envelope::from_reg(0),
-            mode:           Mode::Continuous,
-            remaining:      64 * 0x4000,
-            sweep:          Sweep::from_reg(0),
+            envelope: Envelope::from_reg(0),
+            mode: Mode::Continuous,
+            remaining: 64 * 0x4000,
+            sweep: Sweep::from_reg(0),
         }
     }
 
     pub fn step(&mut self) {
-
         // Counter runs even if the channel is disabled
         if self.mode == Mode::Counter {
             if self.remaining == 0 {
@@ -67,15 +66,14 @@ impl RectangleWave {
 
         self.envelope.step();
 
-        self.divider =
-            match self.sweep.step(self.divider) {
-                Some(div) => div,
-                None      => {
-                    // Sweep function ended, sound is stopped
-                    self.running = false;
-                    return;
-                }
-            };
+        self.divider = match self.sweep.step(self.divider) {
+            Some(div) => div,
+            None => {
+                // Sweep function ended, sound is stopped
+                self.running = false;
+                return;
+            }
+        };
 
         if self.counter == 0 {
             // Reset the counter. This weird equation is simply how
@@ -90,7 +88,6 @@ impl RectangleWave {
     }
 
     pub fn sample(&self) -> Sample {
-
         if !self.running {
             return 0;
         }
@@ -105,7 +102,7 @@ impl RectangleWave {
 
     pub fn start(&mut self) {
         self.envelope = self.start_envelope;
-        self.running  = self.envelope.dac_enabled();
+        self.running = self.envelope.dac_enabled();
         // What do I need to do here exactly? Which counters are
         // reset?
     }
@@ -174,7 +171,7 @@ impl RectangleWave {
 }
 
 /// Rectangular wave duty cycle.
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 pub enum DutyCycle {
     /// Duty cycle of 12.5% (1/8)
     Duty13 = 1,
@@ -185,7 +182,6 @@ pub enum DutyCycle {
     /// Duty cycle of 75%   (6/8)
     Duty75 = 6,
 }
-
 
 impl DutyCycle {
     /// Construct a DutyCycle from a register field (NR11 and
@@ -217,38 +213,37 @@ impl DutyCycle {
     }
 }
 
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 pub struct Sweep {
-    direction:     SweepDirection,
-    shift:         u8,
+    direction: SweepDirection,
+    shift: u8,
     step_duration: u32,
-    counter:       u32,
+    counter: u32,
 }
 
 impl Sweep {
     // Build Sweep from NR10 register value
     pub fn from_reg(val: u8) -> Sweep {
-        let dir =
-            match val & 8 != 0 {
-                false => SweepDirection::Up,
-                true  => SweepDirection::Down,
-            };
+        let dir = match val & 8 != 0 {
+            false => SweepDirection::Up,
+            true => SweepDirection::Down,
+        };
 
         let shift = val & 7;
 
         let l = ((val & 0x70) >> 4) as u32;
 
         Sweep {
-            direction:     dir,
-            shift:         shift,
+            direction: dir,
+            shift: shift,
             step_duration: l * 0x8000,
-            counter:       0,
+            counter: 0,
         }
     }
 
     // Retreive value of NR10 register value
     pub fn into_reg(&self) -> u8 {
-        let l   = (self.step_duration / 0x8000) as u8;
+        let l = (self.step_duration / 0x8000) as u8;
         let dir = self.direction as u8;
 
         // MSB is undefined and always 1
@@ -299,10 +294,10 @@ impl Sweep {
 }
 
 // Sound envelopes can become louder or quieter
-#[derive(Clone,Copy,PartialEq,Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum SweepDirection {
     // Frequency increases at each step
-    Up   = 0,
+    Up = 0,
     // Frequency decreases at each step
     Down = 1,
 }

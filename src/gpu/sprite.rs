@@ -1,7 +1,7 @@
 //! Game Boy GPU Sprite emulation
 
 /// Sprite metadata
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 pub struct Sprite {
     /// Top left corner x-coordinate + 8
     x: u8,
@@ -23,13 +23,13 @@ pub struct Sprite {
 impl Sprite {
     pub fn new() -> Sprite {
         Sprite {
-            x:          0,
-            y:          0,
-            tile:       0,
+            x: 0,
+            y: 0,
+            tile: 0,
             background: false,
-            x_flip:     false,
-            y_flip:     false,
-            palette:    Palette::Obp0,
+            x_flip: false,
+            y_flip: false,
+            palette: Palette::Obp0,
         }
     }
 
@@ -95,11 +95,11 @@ impl Sprite {
     /// representing the flags.
     pub fn set_flags(&mut self, flags: u8) {
         self.background = flags & 0x80 != 0;
-        self.y_flip     = flags & 0x40 != 0;
-        self.x_flip     = flags & 0x20 != 0;
-        self.palette    = match flags & 0x10 != 0 {
+        self.y_flip = flags & 0x40 != 0;
+        self.x_flip = flags & 0x20 != 0;
+        self.palette = match flags & 0x10 != 0 {
             false => Palette::Obp0,
-            true  => Palette::Obp1,
+            true => Palette::Obp1,
         }
     }
 
@@ -108,8 +108,8 @@ impl Sprite {
         let mut r = 0;
 
         r |= (self.background as u8) << 7;
-        r |= (self.y_flip     as u8) << 6;
-        r |= (self.x_flip     as u8) << 5;
+        r |= (self.y_flip as u8) << 6;
+        r |= (self.x_flip as u8) << 5;
 
         r |= match self.palette {
             Palette::Obp0 => 0,
@@ -121,7 +121,7 @@ impl Sprite {
 }
 
 /// Sprites can use two palettes
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 pub enum Palette {
     /// Pallette OBP0
     Obp0,

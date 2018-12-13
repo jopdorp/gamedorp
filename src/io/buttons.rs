@@ -6,7 +6,6 @@
 //! one of those two lines with a pin of the gameboy and sets one bit
 //! in the INPUT register (if the line is selected).
 
-
 use std::cell::Cell;
 
 pub struct Buttons<'a> {
@@ -14,16 +13,17 @@ pub struct Buttons<'a> {
     directions_selected: bool,
     /// `true` if the "buttons" line is active
     /// Controller interface
-    buttons_selected:    bool,
+    buttons_selected: bool,
     /// Abstract interface to the actual UI
-    buttons:             &'a Cell<::ui::Buttons>,
+    buttons: &'a Cell<::ui::Buttons>,
 }
 
 impl<'a> Buttons<'a> {
     pub fn new<'n>(buttons: &'n Cell<::ui::Buttons>) -> Buttons<'n> {
-        Buttons { directions_selected: false,
-                  buttons_selected:    false,
-                  buttons:             buttons,
+        Buttons {
+            directions_selected: false,
+            buttons_selected: false,
+            buttons: buttons,
         }
     }
 
@@ -40,27 +40,27 @@ impl<'a> Buttons<'a> {
             active |= 0x10;
 
             active |= (buttons.right.is_down() as u8) << 0;
-            active |= (buttons.left .is_down() as u8) << 1;
-            active |= (buttons.up   .is_down() as u8) << 2;
-            active |= (buttons.down .is_down() as u8) << 3;
+            active |= (buttons.left.is_down() as u8) << 1;
+            active |= (buttons.up.is_down() as u8) << 2;
+            active |= (buttons.down.is_down() as u8) << 3;
         }
 
         if self.buttons_selected {
             active |= 0x20;
 
-            active |= (buttons.a     .is_down() as u8) << 0;
-            active |= (buttons.b     .is_down() as u8) << 1;
+            active |= (buttons.a.is_down() as u8) << 0;
+            active |= (buttons.b.is_down() as u8) << 1;
             active |= (buttons.select.is_down() as u8) << 2;
-            active |= (buttons.start .is_down() as u8) << 3;
+            active |= (buttons.start.is_down() as u8) << 3;
         }
 
         // Now we can complement the value and return it
         !active
     }
 
-    pub fn set_input(&mut self, val: u8)  {
+    pub fn set_input(&mut self, val: u8) {
         // We select the lines by setting the bit to 0
         self.directions_selected = val & 0x10 == 0;
-        self.buttons_selected    = val & 0x20 == 0;
+        self.buttons_selected = val & 0x20 == 0;
     }
 }

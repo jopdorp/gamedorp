@@ -1,35 +1,32 @@
 use std::cell::Cell;
 
+use sdl2::controller::{Axis, Button, GameController};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl2::{joystick, controller};
-use sdl2::controller::{GameController, Button, Axis};
 use sdl2::Sdl;
-use sdl2::GameControllerSubsystem;
 
 use ui::ButtonState;
 
 pub struct Controller {
-    buttons:      Cell<::ui::Buttons>,
+    buttons: Cell<::ui::Buttons>,
     #[allow(dead_code)]
-    controller:   Option<controller::GameController>,
+    controller: Option<GameController>,
     x_axis_state: Cell<AxisState>,
     y_axis_state: Cell<AxisState>,
 }
 
 impl Controller {
-    pub fn new(sdl2:&Sdl) -> Controller {
+    pub fn new(sdl2: &Sdl) -> Controller {
         // Attempt to add a game controller
 
         let game_controller_subsystem = sdl2.game_controller().unwrap();
-        let njoysticks =
-            match game_controller_subsystem.num_joysticks() {
-                Ok(n)  => n,
-                Err(e) => {
-                    error!("Can't enumarate joysticks: {:?}", e);
-                    0
-                }
-            };
+        let njoysticks = match game_controller_subsystem.num_joysticks() {
+            Ok(n) => n,
+            Err(e) => {
+                error!("Can't enumarate joysticks: {:?}", e);
+                0
+            }
+        };
 
         let mut controller = None;
 
@@ -46,7 +43,7 @@ impl Controller {
                         println!("Successfully opened \"{}\"", c.name());
                         controller = Some(c);
                         break;
-                    },
+                    }
                     Err(e) => println!("failed: {:?}", e),
                 }
             }
@@ -54,12 +51,12 @@ impl Controller {
 
         match controller {
             Some(_) => println!("Controller support enabled"),
-            None    => println!("No controller found"),
+            None => println!("No controller found"),
         }
 
         Controller {
-            buttons:      Cell::new(::ui::Buttons::new(ButtonState::Up)),
-            controller:   controller,
+            buttons: Cell::new(::ui::Buttons::new(ButtonState::Up)),
+            controller: controller,
             x_axis_state: Cell::new(AxisState::Neutral),
             y_axis_state: Cell::new(AxisState::Neutral),
         }
@@ -69,31 +66,37 @@ impl Controller {
         let mut event = ::ui::Event::None;
 
         let mut event_pump = match sdl2.event_pump() {
-            Ok(d)  => d,
+            Ok(d) => d,
             Err(e) => panic!("{}", e),
         };
 
         for e in event_pump.poll_iter() {
             match e {
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } =>
-                    event = ::ui::Event::PowerOff,
-                Event::KeyDown { keycode: key, .. } =>
+                Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => event = ::ui::Event::PowerOff,
+                Event::KeyDown { keycode: key, .. } => {
                     if let Some(key) = key {
                         self.update_key(key, ButtonState::Down)
-                    },
-                Event::KeyUp { keycode: key, .. } =>
+                    }
+                }
+                Event::KeyUp { keycode: key, .. } => {
                     if let Some(key) = key {
                         self.update_key(key, ButtonState::Up)
-                    },
-                Event::ControllerButtonDown{ button, .. } =>
-                        self.update_button(button, ButtonState::Down),
-                Event::ControllerButtonUp{ button, .. } =>
-                    self.update_button(button, ButtonState::Up),
-                Event::ControllerAxisMotion{ axis, value: val, .. } =>
-                    self.update_axis(axis, val),
-                Event::Quit { .. } =>
-                    event = ::ui::Event::PowerOff,
-                _ => ()
+                    }
+                }
+                Event::ControllerButtonDown { button, .. } => {
+                    self.update_button(button, ButtonState::Down)
+                }
+                Event::ControllerButtonUp { button, .. } => {
+                    self.update_button(button, ButtonState::Up)
+                }
+                Event::ControllerAxisMotion {
+                    axis, value: val, ..
+                } => self.update_axis(axis, val),
+                Event::Quit { .. } => event = ::ui::Event::PowerOff,
+                _ => (),
             }
         }
 
@@ -109,15 +112,15 @@ impl Controller {
         let mut b = self.buttons.get();
 
         match key {
-            Keycode::Up        => b.up     = state,
-            Keycode::Down      => b.down   = state,
-            Keycode::Left      => b.left   = state,
-            Keycode::Right     => b.right  = state,
-            Keycode::LAlt      => b.a      = state,
-            Keycode::LCtrl     => b.b      = state,
-            Keycode::Return    => b.start  = state,
-            Keycode::RShift    => b.select = state,
-            _                  => (),
+            Keycode::Up => b.up = state,
+            Keycode::Down => b.down = state,
+            Keycode::Left => b.left = state,
+            Keycode::Right => b.right = state,
+            Keycode::LAlt => b.a = state,
+            Keycode::LCtrl => b.b = state,
+            Keycode::Return => b.start = state,
+            Keycode::RShift => b.select = state,
+            _ => (),
         }
 
         self.buttons.set(b);
@@ -128,15 +131,15 @@ impl Controller {
         let mut b = self.buttons.get();
 
         match button {
-            Button::A         => b.a      = state,
-            Button::B         => b.b      = state,
-            Button::DPadLeft  => b.left   = state,
-            Button::DPadRight => b.right  = state,
-            Button::DPadUp    => b.up     = state,
-            Button::DPadDown  => b.down   = state,
-            Button::Start     => b.start  = state,
-            Button::Back      => b.select = state,
-            _                 => (),
+            Button::A => b.a = state,
+            Button::B => b.b = state,
+            Button::DPadLeft => b.left = state,
+            Button::DPadRight => b.right = state,
+            Button::DPadUp => b.up = state,
+            Button::DPadDown => b.down = state,
+            Button::Start => b.start = state,
+            Button::Back => b.select = state,
+            _ => (),
         }
 
         self.buttons.set(b);
@@ -153,7 +156,7 @@ impl Controller {
                 if state != self.x_axis_state.get() {
                     self.x_axis_state.set(state);
 
-                    b.left  = state.down_if_negative();
+                    b.left = state.down_if_negative();
                     b.right = state.down_if_positive();
                 }
             }
@@ -161,7 +164,7 @@ impl Controller {
                 if state != self.y_axis_state.get() {
                     self.y_axis_state.set(state);
 
-                    b.up   = state.down_if_negative();
+                    b.up = state.down_if_negative();
                     b.down = state.down_if_positive();
                 }
             }
@@ -172,7 +175,7 @@ impl Controller {
     }
 }
 
-#[derive(Clone,Copy,PartialEq,Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum AxisState {
     Neutral,
     Negative,

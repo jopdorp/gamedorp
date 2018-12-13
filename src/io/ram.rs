@@ -17,7 +17,7 @@ impl Ram {
     }
 
     pub fn byte(&self, offset: u16) -> u8 {
-       self.data[offset as usize]
+        self.data[offset as usize]
     }
 
     pub fn set_byte(&mut self, offset: u16, val: u8) {

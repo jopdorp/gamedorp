@@ -6,13 +6,13 @@ use super::{Cartridge, ROM_BANK_SIZE};
 #[derive(Copy)]
 pub struct Model {
     /// String identifier
-    pub name:      &'static str,
+    pub name: &'static str,
     /// Handle ROM write
     pub write_rom: fn(cart: &mut Cartridge, offset: u16, val: u8),
     /// Handle RAM write
     pub write_ram: fn(cart: &mut Cartridge, addr: u32, val: u8),
     /// Handle RAM read
-    pub read_ram:  fn(cart: &Cartridge, addr: u32) -> u8,
+    pub read_ram: fn(cart: &Cartridge, addr: u32) -> u8,
 }
 
 impl ::std::clone::Clone for Model {
@@ -42,8 +42,8 @@ fn read_ram(cart: &Cartridge, addr: u32) -> u8 {
 fn set_rom_bank(cart: &mut Cartridge, bank: u8) {
     cart.set_rom_bank(bank);
 
-    let rom_offset = ROM_BANK_SIZE *
-        match bank {
+    let rom_offset = ROM_BANK_SIZE
+        * match bank {
             // We can't select bank 0, it defaults to 1
             0 => 0,
             // The offset is added to the address of the CPU
@@ -64,12 +64,12 @@ mod mbc0 {
         debug!("Unhandled ROM write: {:04x} {:02x}", offset, val);
     }
 
-    pub static MODEL: Model =
-        Model { name:      "MBC0",
-                write_rom: write_rom,
-                write_ram: super::write_ram,
-                read_ram:  super::read_ram,
-        };
+    pub static MODEL: Model = Model {
+        name: "MBC0",
+        write_rom: write_rom,
+        write_ram: super::write_ram,
+        read_ram: super::read_ram,
+    };
 }
 
 mod mbc1 {
@@ -79,10 +79,12 @@ mod mbc1 {
     fn write_rom(cart: &mut Cartridge, offset: u16, val: u8) {
         match offset {
             0x0000...0x1fff =>
-                // Writing a low nibble 0xa to anywhere in that
-                // address range removes RAM write protect, All other
-                // values enable it.
-                cart.set_ram_wp(val & 0xf != 0xa),
+            // Writing a low nibble 0xa to anywhere in that
+            // address range removes RAM write protect, All other
+            // values enable it.
+            {
+                cart.set_ram_wp(val & 0xf != 0xa)
+            }
             0x2000...0x3fff => {
                 // Select a new ROM bank, bits [4:0]
                 let cur_bank = cart.rom_bank() & !0x1f;
@@ -91,7 +93,7 @@ mod mbc1 {
 
                 set_rom_bank(cart, bank);
             }
-            0x4000...0x5fff =>
+            0x4000...0x5fff => {
                 if cart.bank_ram() {
                     // Select a new RAM bank
                     cart.set_ram_bank(val & 0x3);
@@ -102,10 +104,13 @@ mod mbc1 {
                     let bank = cur_bank | ((val << 5) & 0x60);
 
                     set_rom_bank(cart, bank);
-                },
+                }
+            }
             0x6000...0x7fff =>
-                // Switch RAM/ROM banking mode
-                cart.set_bank_ram(val & 1 != 0),
+            // Switch RAM/ROM banking mode
+            {
+                cart.set_bank_ram(val & 1 != 0)
+            }
             _ => debug!("Unhandled ROM write: {:04x} {:02x}", offset, val),
         }
     }
@@ -121,12 +126,7 @@ mod mbc1 {
         // be 0 (since bank 0 is always mapped at the begining of the
         // address space) but this would also rewrite bank 32 to 33
         // for instance. Maybe a quirck of MBC1?
-        let bank =
-            if bank & 0x1f != 0 {
-                bank
-            } else {
-                bank | 1
-            };
+        let bank = if bank & 0x1f != 0 { bank } else { bank | 1 };
 
         // If the bank overflows we wrap it around. This assumes that
         // MBC1 cart can only have a power of two number of banks.
@@ -141,13 +141,12 @@ mod mbc1 {
         cart.set_rom_offset(rom_offset);
     }
 
-
-    pub static MODEL: Model =
-        Model { name:      "MBC1",
-                write_rom: write_rom,
-                write_ram: super::write_ram,
-                read_ram:  super::read_ram,
-        };
+    pub static MODEL: Model = Model {
+        name: "MBC1",
+        write_rom: write_rom,
+        write_ram: super::write_ram,
+        read_ram: super::read_ram,
+    };
 }
 
 mod mbc2 {
@@ -157,10 +156,12 @@ mod mbc2 {
     fn write_rom(cart: &mut Cartridge, offset: u16, val: u8) {
         match offset {
             0x0000...0x1fff =>
-                // Writing a low nibble 0xa to anywhere in that
-                // address range removes RAM write protect, All other
-                // values enable it.
-                cart.set_ram_wp(val & 0xf != 0xa),
+            // Writing a low nibble 0xa to anywhere in that
+            // address range removes RAM write protect, All other
+            // values enable it.
+            {
+                cart.set_ram_wp(val & 0xf != 0xa)
+            }
             0x2000...0x3fff => {
                 super::set_rom_bank(cart, val & 0xf);
             }
@@ -168,12 +169,12 @@ mod mbc2 {
         }
     }
 
-    pub static MODEL: Model =
-        Model { name:      "MBC2",
-                write_rom: write_rom,
-                write_ram: super::write_ram,
-                read_ram:  super::read_ram,
-        };
+    pub static MODEL: Model = Model {
+        name: "MBC2",
+        write_rom: write_rom,
+        write_ram: super::write_ram,
+        read_ram: super::read_ram,
+    };
 }
 
 mod mbc3 {
@@ -183,36 +184,42 @@ mod mbc3 {
     fn write_rom(cart: &mut Cartridge, offset: u16, val: u8) {
         match offset {
             0x0000...0x1fff =>
-                // Writing a low nibble 0xa to anywhere in that
-                // address range removes RAM write protect, All other
-                // values enable it.
-                cart.set_ram_wp(val & 0xf != 0xa),
+            // Writing a low nibble 0xa to anywhere in that
+            // address range removes RAM write protect, All other
+            // values enable it.
+            {
+                cart.set_ram_wp(val & 0xf != 0xa)
+            }
             0x2000...0x3fff =>
-                // Select a new ROM bank
-                super::set_rom_bank(cart, val & 0x7f),
+            // Select a new ROM bank
+            {
+                super::set_rom_bank(cart, val & 0x7f)
+            }
             0x4000...0x5fff =>
-                // Select a new RAM bank
-                cart.set_ram_bank(val),
+            // Select a new RAM bank
+            {
+                cart.set_ram_bank(val)
+            }
             0x6000...0x7fff => debug!("Unhandled RTC access"),
             _ => debug!("Unhandled ROM write: {:04x} {:02x}", offset, val),
         }
     }
 
-    pub static MODEL: Model =
-        Model { name:     "MBC3",
-                write_rom: write_rom,
-                write_ram: super::write_ram,
-                read_ram:  super::read_ram,
-        };
+    pub static MODEL: Model = Model {
+        name: "MBC3",
+        write_rom: write_rom,
+        write_ram: super::write_ram,
+        read_ram: super::read_ram,
+    };
 }
 
 /// Return a cartridge instance for a given cartridge type
 pub fn from_id(id: u8) -> Model {
     match id {
-        0           => mbc0::MODEL,
+        0 => mbc0::MODEL,
         0x01...0x03 => mbc1::MODEL,
         0x05...0x06 => mbc2::MODEL,
         0x0f...0x13 => mbc3::MODEL,
-        _           => panic!("Unknown cartridge model 0x{:02x}", id),
+        _ => panic!("Unknown cartridge model 0x{:02x}", id),
     }
 }

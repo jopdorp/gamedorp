@@ -13,23 +13,25 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
-extern crate sdl2;
 extern crate ascii;
 extern crate num;
+extern crate sdl2;
 
-use std::sync::mpsc::channel;
-use ui::Audio;
 use std::path::Path;
-use cpu::CanRunInstruction;
+use std::sync::mpsc::channel;
+use std::time::Duration;
 
+use cpu::CanRunInstruction;
+use ui::Audio;
+
+mod cartridge;
 mod cpu;
 mod gb_rs_cpu;
-mod io;
 mod gpu;
-mod ui;
-mod cartridge;
-mod spu;
+mod io;
 mod resampler;
+mod spu;
+mod ui;
 
 #[allow(dead_code)]
 fn main() {
@@ -43,7 +45,7 @@ fn main() {
     let rompath = Path::new(&argv[1]);
 
     let cart = match cartridge::Cartridge::from_path(&rompath) {
-        Ok(r)  => r,
+        Ok(r) => r,
         Err(e) => panic!("Failed to load ROM: {}", e),
     };
 
@@ -57,10 +59,9 @@ fn main() {
     audio.start();
     let inter = io::Interconnect::new(cart, gpu, spu, sdl2.buttons());
 
-
-    let mut cpu:Box<CanRunInstruction> = if argv.len() > 2 && &argv[2] == "gb-rs" {
+    let mut cpu: Box<CanRunInstruction> = if argv.len() > 2 && &argv[2] == "gb-rs" {
         Box::new(::gb_rs_cpu::Cpu::new(inter))
-    }else{
+    } else {
         Box::new(cpu::Cpu::new(inter))
     };
     // In order to synchronize the emulation speed with the wall clock
@@ -72,16 +73,15 @@ fn main() {
     // sleep very often which will have poor performance. If it's too
     // high it might look like the emulation is stuttering.
 
-    let batch_duration_ns = GRANULARITY * (1_000_000_000 /
-                                           SYSCLK_FREQ);
+    let batch_duration_ns = GRANULARITY * (1_000_000_000 / SYSCLK_FREQ);
     // No sub-ms precision in stable rust sleep for now...
-    let batch_duration_ms = (batch_duration_ns / 1_000_000) as u32;
+    let batch_duration_ms = Duration::new(0, batch_duration_ns as u32 / 1_000_000);
     let (tick_tx, tick_rx) = channel();
     // Spawn a thread that will send periodic ticks that we'll use to
     // synchronize ourselves
     ::std::thread::spawn(move || {
         loop {
-            std::thread::sleep_ms(batch_duration_ms);
+            std::thread::sleep(batch_duration_ms);
             if let Err(_) = tick_tx.send(()) {
                 // End thread
                 return;
@@ -89,22 +89,22 @@ fn main() {
         }
     });
     let mut audio_adjust_count = 0;
-    let mut cycles = 0;
+    let mut cycles: u64 = 0;
 
     loop {
         while cycles < GRANULARITY {
             // The actual emulator takes place here!
-            cycles += cpu.run_next_instruction() as i64;
+            cycles += cpu.run_next_instruction() as u64;
         }
         cycles -= GRANULARITY;
         // Update controller status
         match sdl2.update_buttons() {
             ui::Event::PowerOff => break,
-            ui::Event::None     => (),
+            ui::Event::None => (),
         }
         // Sleep until next batch cycle
         if let Err(e) = tick_rx.recv() {
-             panic!("Timer died: {:?}", e);
+            panic!("Timer died: {:?}", e);
         }
         audio_adjust_count += GRANULARITY;
         if audio_adjust_count >= SYSCLK_FREQ * AUDIO_ADJUST_SEC {
@@ -120,10 +120,10 @@ fn main() {
 /// Number of instructions executed between sleeps (i.e. giving the
 /// hand back to the scheduler). Low values increase CPU usage and can
 /// result in poor performance, high values will cause stuttering.
-const GRANULARITY:      i64 = 0x10000;
+const GRANULARITY: u64 = 0x10000;
 
 /// Gameboy sysclk frequency: 4.19Mhz
-const SYSCLK_FREQ:      i64 = 0x400000;
+const SYSCLK_FREQ: u64 = 0x400000;
 
 /// How often should we adjust the audio resampling rate. In seconds.
-const AUDIO_ADJUST_SEC: i64 = 1;
+const AUDIO_ADJUST_SEC: u64 = 1;

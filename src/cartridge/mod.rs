@@ -1,26 +1,26 @@
 //! Cartridge emulation. There are multiple cartridge types with
 //! different capabilities (bankable ROM/RAM, battery, RTC etc...).
 
-use std::fmt::{Debug, Formatter, Error};
-use std::path::{Path, PathBuf};
-use std::fs::{File, OpenOptions};
-use std::iter::repeat;
 use ascii::AsciiCast;
-use std::io::{SeekFrom, Read, Write, Seek};
+use std::fmt::{Debug, Error, Formatter};
+use std::fs::{File, OpenOptions};
 use std::io::Result as IoResult;
+use std::io::{Read, Seek, SeekFrom, Write};
+use std::iter::repeat;
+use std::path::{Path, PathBuf};
 
 mod models;
 
 /// Common state for all cartridge types
 pub struct Cartridge {
     /// Cartridge ROM data
-    rom:        Vec<u8>,
+    rom: Vec<u8>,
     /// Cartridge RAM data
-    ram:        Vec<u8>,
+    ram: Vec<u8>,
     /// Total number of ROM banks in this cart
-    rom_banks:  u8,
+    rom_banks: u8,
     /// Current number of the rom bank mapped at [0x4000, 0x7fff]
-    rom_bank:   u8,
+    rom_bank: u8,
     /// Current bank offset for the bank mapped at [0x4000, 0x7fff].
     /// This value is added to ROM register addresses when they're in
     /// that range.
@@ -28,17 +28,17 @@ pub struct Cartridge {
     /// Current bank offset for the RAM
     ram_offset: u32,
     /// If `true` RAM is write protected
-    ram_wp:     bool,
+    ram_wp: bool,
     /// Certain cartridges allow banking either the RAM or ROM
     /// depending on the value of this flag.
-    bank_ram:   bool,
+    bank_ram: bool,
     /// struct used to handle model specific functions
-    model:      models::Model,
+    model: models::Model,
     /// Path to the ROM image for this cartridge
-    path:       PathBuf,
+    path: PathBuf,
     /// optional save file used to store non-volatile RAM on emulator
     /// shutdown
-    save_file:  Option<File>,
+    save_file: Option<File>,
 }
 
 impl Cartridge {
@@ -49,37 +49,38 @@ impl Cartridge {
         let mut rom = Vec::new();
 
         // There must always be at least two ROM banks
-        try!((&mut source).take(2 * ROM_BANK_SIZE as u64)
-             .read_to_end(&mut rom));
+        try!((&mut source)
+            .take(2 * ROM_BANK_SIZE as u64)
+            .read_to_end(&mut rom));
 
         let model = models::from_id(rom[offsets::TYPE]);
 
         let mut cartridge = Cartridge {
-            rom:        rom,
-            ram:        Vec::new(),
-            rom_banks:  2,
+            rom: rom,
+            ram: Vec::new(),
+            rom_banks: 2,
             // Default to bank 1 for bankable region
-            rom_bank:   1,
+            rom_bank: 1,
             rom_offset: 0,
             ram_offset: 0,
-            ram_wp:     true,
-            bank_ram:   false,
-            model:      model,
-            path:       PathBuf::from(rom_path),
-            save_file:  None,
+            ram_wp: true,
+            bank_ram: false,
+            model: model,
+            path: PathBuf::from(rom_path),
+            save_file: None,
         };
 
         let rombanks = match cartridge.parse_rom_banks() {
             Some(n) => n,
-            None    => panic!("Can't determine ROM size"),
+            None => panic!("Can't determine ROM size"),
         };
 
         cartridge.rom_banks = rombanks;
 
         // Read the remaining roms banks
         if rombanks > 2 {
-            let remb      = (rombanks - 2) as usize;
-            let mut off   = 2    * ROM_BANK_SIZE as usize;
+            let remb = (rombanks - 2) as usize;
+            let mut off = 2 * ROM_BANK_SIZE as usize;
             let mut remsz = remb * ROM_BANK_SIZE as usize;
 
             // Reserve space for the remaining banks
@@ -89,7 +90,7 @@ impl Cartridge {
                 let r = try!(source.read(&mut cartridge.rom[off..]));
 
                 remsz -= r;
-                off   += r;
+                off += r;
             }
         }
 
@@ -103,7 +104,7 @@ impl Cartridge {
     fn init_ram(&mut self) -> IoResult<()> {
         let (rambanks, banksize) = match self.parse_ram_banks() {
             Some(v) => v,
-            None    => panic!("Can't determine RAM size"),
+            None => panic!("Can't determine RAM size"),
         };
 
         let ramsize = rambanks * banksize;
@@ -119,10 +120,10 @@ impl Cartridge {
         savepath.set_extension("sav");
 
         let mut save_file = try!(OpenOptions::new()
-                                 .read(true)
-                                 .write(true)
-                                 .create(true)
-                                 .open(savepath.clone()));
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(savepath.clone()));
 
         let save_size = try!(save_file.metadata()).len();
 
@@ -135,10 +136,16 @@ impl Cartridge {
             try!(save_file.write_all(&self.ram));
         } else if save_size == (ramsize as u64) {
             // The file contains a RAM image
-            try!((&mut save_file).take(ramsize as u64).read_to_end(&mut self.ram));
+            try!((&mut save_file)
+                .take(ramsize as u64)
+                .read_to_end(&mut self.ram));
         } else {
-            panic!("Unexpected save file size for {}: expected {} got {}",
-                   savepath.display(), ramsize, save_size);
+            panic!(
+                "Unexpected save file size for {}: expected {} got {}",
+                savepath.display(),
+                ramsize,
+                save_size
+            );
         }
 
         // Store the file handle to save progress later
@@ -149,7 +156,7 @@ impl Cartridge {
 
     /// Update the save file
     pub fn save_ram(&mut self) -> IoResult<()> {
-        if let Some(mut f) = self.save_file.as_mut() {
+        if let Some(f) = self.save_file.as_mut() {
             // Rewind to the beginning of the file and update its
             // contents
             println!("Saving non-volatile memory");
@@ -166,11 +173,10 @@ impl Cartridge {
         let mut name = String::with_capacity(16);
 
         for i in 0..16 {
-            let c =
-                match self.rom[offsets::TITLE + i].to_ascii() {
-                    Ok(c) => c,
-                    _     => return None,
-                };
+            let c = match self.rom[offsets::TITLE + i].to_ascii() {
+                Ok(c) => c,
+                _ => return None,
+            };
 
             // If the name is shorter than 16bytes it's padded with 0s
             if c.as_byte() == 0 {
@@ -195,21 +201,20 @@ impl Cartridge {
     fn parse_rom_banks(&self) -> Option<u8> {
         let id = self.rom_byte(offsets::ROM_SIZE as u16);
 
-        let nbanks =
-            match id {
-                0x00 => 2,
-                0x01 => 4,
-                0x02 => 8,
-                0x03 => 16,
-                0x04 => 32,
-                0x05 => 64,
-                0x06 => 128,
-                0x52 => 72,
-                0x53 => 80,
-                0x54 => 96,
-                // Unknown value
-                _    => return None,
-            };
+        let nbanks = match id {
+            0x00 => 2,
+            0x01 => 4,
+            0x02 => 8,
+            0x03 => 16,
+            0x04 => 32,
+            0x05 => 64,
+            0x06 => 128,
+            0x52 => 72,
+            0x53 => 80,
+            0x54 => 96,
+            // Unknown value
+            _ => return None,
+        };
 
         Some(nbanks)
     }
@@ -217,7 +222,6 @@ impl Cartridge {
     /// Return the number of RAM banks for this ROM along with the
     /// size of each bank in bytes.
     pub fn parse_ram_banks(&self) -> Option<(usize, usize)> {
-
         let model = models::from_id(self.rom_byte(offsets::TYPE as u16));
 
         // Special case for MBC2, the RAM_SIZE field is not
@@ -230,16 +234,15 @@ impl Cartridge {
 
         let id = self.rom_byte(offsets::RAM_SIZE as u16);
 
-        let (nbanks, bank_size_kb) =
-            match id {
-                0x00 => (0,  0),
-                0x01 => (1,  2),
-                0x02 => (1,  8),
-                0x03 => (4,  8),
-                0x04 => (16, 8),
-                // Unknown value
-                _    => return None,
-            };
+        let (nbanks, bank_size_kb) = match id {
+            0x00 => (0, 0),
+            0x01 => (1, 2),
+            0x02 => (1, 8),
+            0x03 => (4, 8),
+            0x04 => (16, 8),
+            // Unknown value
+            _ => return None,
+        };
 
         Some((nbanks, bank_size_kb * 1024))
     }
@@ -336,17 +339,17 @@ impl Cartridge {
     #[cfg(test)]
     pub fn from_vec(rom: Vec<u8>) -> Cartridge {
         Cartridge {
-            rom:        rom,
-            ram:        Vec::new(),
-            rom_bank:   1,
-            rom_banks:  2,
+            rom: rom,
+            ram: Vec::new(),
+            rom_bank: 1,
+            rom_banks: 2,
             rom_offset: 0,
             ram_offset: 0,
-            ram_wp:     true,
-            bank_ram:   false,
-            model:      models::from_id(0x00),
-            path:       PathBuf::from("dummy"),
-            save_file:  None,
+            ram_wp: true,
+            bank_ram: false,
+            model: models::from_id(0x00),
+            path: PathBuf::from("dummy"),
+            save_file: None,
         }
     }
 }
@@ -366,22 +369,24 @@ impl Debug for Cartridge {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         let name = match self.name() {
             Some(s) => s,
-            None    => "<INVALID>".to_string(),
+            None => "<INVALID>".to_string(),
         };
 
         let rombanks = self.rom_banks();
 
         let (rambanks, rambanksize) = match self.parse_ram_banks() {
             Some(n) => n,
-            None    => (0, 0),
+            None => (0, 0),
         };
 
-        try!(write!(f,
-                    "'{}' (Model: {}, \
-                           ROM banks: {}, \
-                           RAM banks: {}, \
-                           RAM bank size: {}B)",
-                    name, self.model.name, rombanks, rambanks, rambanksize));
+        try!(write!(
+            f,
+            "'{}' (Model: {}, \
+             ROM banks: {}, \
+             RAM banks: {}, \
+             RAM bank size: {}B)",
+            name, self.model.name, rombanks, rambanks, rambanksize
+        ));
 
         Ok(())
     }
@@ -394,9 +399,9 @@ mod offsets {
     //! Various offset values to access special memory locations within the ROM
 
     /// Title. Upper case ASCII 16bytes long, padded with 0s if shorter
-    pub const TITLE:    usize = 0x134;
+    pub const TITLE: usize = 0x134;
     /// Cartridge type
-    pub const TYPE:     usize = 0x147;
+    pub const TYPE: usize = 0x147;
     pub const ROM_SIZE: usize = 0x148;
     pub const RAM_SIZE: usize = 0x149;
 }

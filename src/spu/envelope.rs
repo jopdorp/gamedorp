@@ -2,39 +2,37 @@
 
 use spu::{Sample, SOUND_MAX};
 
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 pub struct Envelope {
-    direction:     EnvelopeDirection,
-    volume:        Volume,
+    direction: EnvelopeDirection,
+    volume: Volume,
     step_duration: u32,
-    counter:       u32,
+    counter: u32,
 }
 
 impl Envelope {
     pub fn from_reg(val: u8) -> Envelope {
-
         let vol = Volume::from_field(val >> 4);
 
-        let dir =
-            match val & 8 != 0 {
-                true  => EnvelopeDirection::Up,
-                false => EnvelopeDirection::Down,
-            };
+        let dir = match val & 8 != 0 {
+            true => EnvelopeDirection::Up,
+            false => EnvelopeDirection::Down,
+        };
 
         let l = (val & 7) as u32;
 
         Envelope {
-            direction:     dir,
-            volume:        vol,
+            direction: dir,
+            volume: vol,
             step_duration: l * 0x10000,
-            counter:       0,
+            counter: 0,
         }
     }
 
     pub fn into_reg(&self) -> u8 {
         let vol = self.volume.into_field();
         let dir = self.direction as u8;
-        let l   = (self.step_duration / 0x10000) as u8;
+        let l = (self.step_duration / 0x10000) as u8;
 
         (vol << 4) | (dir << 3) | l
     }
@@ -51,7 +49,7 @@ impl Envelope {
         if self.counter == 0 {
             // Move on to the next step
             match self.direction {
-                EnvelopeDirection::Up   => self.volume.up(),
+                EnvelopeDirection::Up => self.volume.up(),
                 EnvelopeDirection::Down => self.volume.down(),
             }
         }
@@ -63,23 +61,22 @@ impl Envelope {
 
     /// DAC is disabled when envelope direction goes down and volume is 0
     pub fn dac_enabled(&self) -> bool {
-        self.direction != EnvelopeDirection::Down ||
-            self.volume.into_sample() != 0
+        self.direction != EnvelopeDirection::Down || self.volume.into_sample() != 0
     }
 }
 
 // Sound envelopes can become louder or quieter
-#[derive(Clone,Copy,PartialEq,Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum EnvelopeDirection {
     // Volume increases at each step
-    Up   = 1,
+    Up = 1,
     // Volume decreases at each step
     Down = 0,
 }
 
 /// The game boy sound uses 4bit DACs and can therefore only output 16
 /// sound levels
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 struct Volume(u8);
 
 impl Volume {

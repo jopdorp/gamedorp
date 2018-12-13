@@ -3,14 +3,14 @@
 use gpu::Gpu;
 use spu::Spu;
 
-use std::cell::Cell;
 use cartridge::Cartridge;
+use std::cell::Cell;
 
-use self::io_map::{NR3_RAM_START, NR3_RAM_END};
+use self::io_map::{NR3_RAM_END, NR3_RAM_START};
 
+pub mod buttons;
 pub mod ram;
 pub mod timer;
-pub mod buttons;
 
 mod bootrom;
 
@@ -18,38 +18,39 @@ mod bootrom;
 /// and registers
 pub struct Interconnect<'a> {
     /// Cartridge interface
-    cartridge:  Cartridge,
+    cartridge: Cartridge,
     /// internal RAM
-    iram:       ram::Ram,
+    iram: ram::Ram,
     /// 0-page RAM
-    zpage:      ram::Ram,
+    zpage: ram::Ram,
     /// Timer instance
-    pub timer:      timer::Timer,
+    pub timer: timer::Timer,
     /// GPU instance
-    gpu:        Gpu<'a>,
+    gpu: Gpu<'a>,
     /// SPU instance
-    spu:        Spu,
+    spu: Spu,
     /// Enabled interrupts
     it_enabled: Interrupts,
     /// Current DMA source address
-    dma_src:    u16,
+    dma_src: u16,
     /// Current DMA index in OAM
-    dma_idx:    u16,
+    dma_idx: u16,
     /// Controller interface
-    buttons:    buttons::Buttons<'a>,
+    buttons: buttons::Buttons<'a>,
     /// The game boy starts up mapping the bootrom at address [0,
     /// 0xff]. The last thing the bootrom does is writing 0x01 to
     /// UNMAP_BOOTROM to remove itself from the memory map.
-    pub bootrom:    bool,
+    pub bootrom: bool,
 }
 
 impl<'a> Interconnect<'a> {
     /// Create a new Interconnect
-    pub fn new<'n>(cartridge:  Cartridge,
-                   gpu:        Gpu<'n>,
-                   spu:        Spu,
-                   buttons:    &'n Cell<::ui::Buttons>) -> Interconnect<'n> {
-
+    pub fn new<'n>(
+        cartridge: Cartridge,
+        gpu: Gpu<'n>,
+        spu: Spu,
+        buttons: &'n Cell<::ui::Buttons>,
+    ) -> Interconnect<'n> {
         let iram = ram::Ram::new(0x2000);
         let zpage = ram::Ram::new(0x7f);
 
@@ -59,17 +60,18 @@ impl<'a> Interconnect<'a> {
 
         let buttons = buttons::Buttons::new(buttons);
 
-        Interconnect { cartridge:  cartridge,
-                       iram:       iram,
-                       zpage:      zpage,
-                       timer:      timer,
-                       gpu:        gpu,
-                       spu:        spu,
-                       it_enabled: it_enabled,
-                       dma_src:    0,
-                       dma_idx:    map::range_size(map::OAM),
-                       buttons:    buttons,
-                       bootrom:    true,
+        Interconnect {
+            cartridge: cartridge,
+            iram: iram,
+            zpage: zpage,
+            timer: timer,
+            gpu: gpu,
+            spu: spu,
+            it_enabled: it_enabled,
+            dma_src: 0,
+            dma_idx: map::range_size(map::OAM),
+            buttons: buttons,
+            bootrom: true,
         }
     }
 
@@ -97,14 +99,15 @@ impl<'a> Interconnect<'a> {
 
     /// Get byte from peripheral mapped at `addr`
     pub fn fetch_byte(&self, addr: u16) -> u8 {
-
         if let Some(off) = map::in_range(addr, map::ROM) {
             if self.bootrom && off < 0x100 {
                 // Bootrom is still mapped, read from it
                 let should_read_bootrom = self.bootrom && off < 0x100;
                 if !self.bootrom {
-                    panic!("how did you end up here? bootrom was disabled! {}, {}\n",
-                           self.bootrom,should_read_bootrom)
+                    panic!(
+                        "how did you end up here? bootrom was disabled! {}, {}\n",
+                        self.bootrom, should_read_bootrom
+                    )
                 }
                 return bootrom::BOOTROM[off as usize];
             }
@@ -150,7 +153,7 @@ impl<'a> Interconnect<'a> {
 
     /// Store `val` into peripheral mapped at `addr`
     pub fn store_byte(&mut self, addr: u16, val: u8) {
-        trace!("storing {:x} in {:x}\n",val,addr);
+        trace!("storing {:x} in {:x}\n", val, addr);
         if let Some(off) = map::in_range(addr, map::ROM) {
             return self.cartridge.set_rom_byte(off, val);
         }
@@ -234,54 +237,54 @@ impl<'a> Interconnect<'a> {
     fn io(&self, addr: u16) -> u8 {
         match addr {
             // Controller input
-            io_map::INPUT    => self.buttons.input(),
+            io_map::INPUT => self.buttons.input(),
             // Serial link
-            io_map::SB       => {
+            io_map::SB => {
                 debug!("unhandled read from serial data");
                 0
             }
-            io_map::SC       => {
+            io_map::SC => {
                 debug!("unhandled read from serial control");
                 0
             }
             // Timers
-            io_map::DIV      => self.timer.div(),
-            io_map::TIMA     => self.timer.counter(),
-            io_map::TMA      => self.timer.modulo(),
-            io_map::TAC      => self.timer.config(),
+            io_map::DIV => self.timer.div(),
+            io_map::TIMA => self.timer.counter(),
+            io_map::TMA => self.timer.modulo(),
+            io_map::TAC => self.timer.config(),
             // DMA
-            io_map::DMA      => self.dma_addr(),
+            io_map::DMA => self.dma_addr(),
             // Interrupt Flags
-            io_map::IF       =>
-                Interrupts {
-                    vblank: self.gpu.it_vblank(),
-                    lcdc:   self.gpu.it_lcd(),
-                    timer:  self.timer.interrupt(),
-                    serial: false,
-                    button: false,
-                }.as_register(),
+            io_map::IF => Interrupts {
+                vblank: self.gpu.it_vblank(),
+                lcdc: self.gpu.it_lcd(),
+                timer: self.timer.interrupt(),
+                serial: false,
+                button: false,
+            }
+            .as_register(),
             // SPU registers
-            io_map::NR10     => self.spu.nr10(),
-            io_map::NR11     => self.spu.nr11(),
-            io_map::NR12     => self.spu.nr12(),
-            io_map::NR13     => self.spu.nr13(),
-            io_map::NR14     => self.spu.nr14(),
-            io_map::NR21     => self.spu.nr21(),
-            io_map::NR22     => self.spu.nr22(),
-            io_map::NR23     => self.spu.nr23(),
-            io_map::NR24     => self.spu.nr24(),
-            io_map::NR30     => self.spu.nr30(),
-            io_map::NR31     => self.spu.nr31(),
-            io_map::NR32     => self.spu.nr32(),
-            io_map::NR33     => self.spu.nr33(),
-            io_map::NR34     => self.spu.nr34(),
-            io_map::NR41     => self.spu.nr41(),
-            io_map::NR42     => self.spu.nr42(),
-            io_map::NR43     => self.spu.nr43(),
-            io_map::NR44     => self.spu.nr44(),
-            io_map::NR50     => self.spu.nr50(),
-            io_map::NR51     => self.spu.nr51(),
-            io_map::NR52     => self.spu.nr52(),
+            io_map::NR10 => self.spu.nr10(),
+            io_map::NR11 => self.spu.nr11(),
+            io_map::NR12 => self.spu.nr12(),
+            io_map::NR13 => self.spu.nr13(),
+            io_map::NR14 => self.spu.nr14(),
+            io_map::NR21 => self.spu.nr21(),
+            io_map::NR22 => self.spu.nr22(),
+            io_map::NR23 => self.spu.nr23(),
+            io_map::NR24 => self.spu.nr24(),
+            io_map::NR30 => self.spu.nr30(),
+            io_map::NR31 => self.spu.nr31(),
+            io_map::NR32 => self.spu.nr32(),
+            io_map::NR33 => self.spu.nr33(),
+            io_map::NR34 => self.spu.nr34(),
+            io_map::NR41 => self.spu.nr41(),
+            io_map::NR42 => self.spu.nr42(),
+            io_map::NR43 => self.spu.nr43(),
+            io_map::NR44 => self.spu.nr44(),
+            io_map::NR50 => self.spu.nr50(),
+            io_map::NR51 => self.spu.nr51(),
+            io_map::NR52 => self.spu.nr52(),
             // Audio waveform RAM for sound 3
             NR3_RAM_START...NR3_RAM_END => {
                 let index = (addr - NR3_RAM_START) as u8;
@@ -290,17 +293,17 @@ impl<'a> Interconnect<'a> {
             }
             // GPU registers
             io_map::LCD_STAT => self.gpu.stat(),
-            io_map::LCD_SCY  => self.gpu.scy(),
-            io_map::LCD_SCX  => self.gpu.scx(),
-            io_map::LCDC     => self.gpu.lcdc(),
-            io_map::LCD_LY   => self.gpu.line(),
-            io_map::LCD_LYC  => self.gpu.lyc(),
-            io_map::LCD_BGP  => self.gpu.bgp(),
+            io_map::LCD_SCY => self.gpu.scy(),
+            io_map::LCD_SCX => self.gpu.scx(),
+            io_map::LCDC => self.gpu.lcdc(),
+            io_map::LCD_LY => self.gpu.line(),
+            io_map::LCD_LYC => self.gpu.lyc(),
+            io_map::LCD_BGP => self.gpu.bgp(),
             io_map::LCD_OBP0 => self.gpu.obp0(),
             io_map::LCD_OBP1 => self.gpu.obp1(),
-            io_map::LCD_WY   => self.gpu.wy(),
-            io_map::LCD_WX   => self.gpu.wx(),
-            _                => {
+            io_map::LCD_WY => self.gpu.wy(),
+            io_map::LCD_WX => self.gpu.wx(),
+            _ => {
                 warn!("Unhandled IO read from 0x{:04x}", 0xff00 | addr);
                 // Unmapped addresses read as full 1s
                 0xff
@@ -310,24 +313,21 @@ impl<'a> Interconnect<'a> {
 
     /// Set value of IO port
     fn set_io(&mut self, addr: u16, val: u8) {
-
         match addr {
             // Controller input
-            io_map::INPUT    => self.buttons.set_input(val),
+            io_map::INPUT => self.buttons.set_input(val),
             // Seral link
-            io_map::SB       =>
-                debug!("unhandled write to serial data: 0x{:02x}", val),
-            io_map::SC       =>
-                debug!("unhandled write to serial control: 0x{:02x}", val),
+            io_map::SB => debug!("unhandled write to serial data: 0x{:02x}", val),
+            io_map::SC => debug!("unhandled write to serial control: 0x{:02x}", val),
             // Timers
-            io_map::DIV      => self.timer.reset_div(),
-            io_map::TIMA     => self.timer.set_counter(val),
-            io_map::TMA      => self.timer.set_modulo(val),
-            io_map::TAC      => self.timer.set_config(val),
+            io_map::DIV => self.timer.reset_div(),
+            io_map::TIMA => self.timer.set_counter(val),
+            io_map::TMA => self.timer.set_modulo(val),
+            io_map::TAC => self.timer.set_config(val),
             // DMA
-            io_map::DMA      => self.start_dma(val),
+            io_map::DMA => self.start_dma(val),
             // Interrupt Flags
-            io_map::IF       => {
+            io_map::IF => {
                 let f = Interrupts::from_register(val);
 
                 // Explicit writes to the Interrupt Flag register
@@ -337,27 +337,27 @@ impl<'a> Interconnect<'a> {
                 self.timer.force_interrupt(f.timer);
             }
             // SPU registers
-            io_map::NR10     => self.spu.set_nr10(val),
-            io_map::NR11     => self.spu.set_nr11(val),
-            io_map::NR12     => self.spu.set_nr12(val),
-            io_map::NR13     => self.spu.set_nr13(val),
-            io_map::NR14     => self.spu.set_nr14(val),
-            io_map::NR21     => self.spu.set_nr21(val),
-            io_map::NR22     => self.spu.set_nr22(val),
-            io_map::NR23     => self.spu.set_nr23(val),
-            io_map::NR24     => self.spu.set_nr24(val),
-            io_map::NR30     => self.spu.set_nr30(val),
-            io_map::NR31     => self.spu.set_nr31(val),
-            io_map::NR32     => self.spu.set_nr32(val),
-            io_map::NR33     => self.spu.set_nr33(val),
-            io_map::NR34     => self.spu.set_nr34(val),
-            io_map::NR41     => self.spu.set_nr41(val),
-            io_map::NR42     => self.spu.set_nr42(val),
-            io_map::NR43     => self.spu.set_nr43(val),
-            io_map::NR44     => self.spu.set_nr44(val),
-            io_map::NR50     => self.spu.set_nr50(val),
-            io_map::NR51     => self.spu.set_nr51(val),
-            io_map::NR52     => self.spu.set_nr52(val),
+            io_map::NR10 => self.spu.set_nr10(val),
+            io_map::NR11 => self.spu.set_nr11(val),
+            io_map::NR12 => self.spu.set_nr12(val),
+            io_map::NR13 => self.spu.set_nr13(val),
+            io_map::NR14 => self.spu.set_nr14(val),
+            io_map::NR21 => self.spu.set_nr21(val),
+            io_map::NR22 => self.spu.set_nr22(val),
+            io_map::NR23 => self.spu.set_nr23(val),
+            io_map::NR24 => self.spu.set_nr24(val),
+            io_map::NR30 => self.spu.set_nr30(val),
+            io_map::NR31 => self.spu.set_nr31(val),
+            io_map::NR32 => self.spu.set_nr32(val),
+            io_map::NR33 => self.spu.set_nr33(val),
+            io_map::NR34 => self.spu.set_nr34(val),
+            io_map::NR41 => self.spu.set_nr41(val),
+            io_map::NR42 => self.spu.set_nr42(val),
+            io_map::NR43 => self.spu.set_nr43(val),
+            io_map::NR44 => self.spu.set_nr44(val),
+            io_map::NR50 => self.spu.set_nr50(val),
+            io_map::NR51 => self.spu.set_nr51(val),
+            io_map::NR52 => self.spu.set_nr52(val),
             // Audio waveform RAM for sound 3
             NR3_RAM_START...NR3_RAM_END => {
                 let index = (addr - NR3_RAM_START) as u8;
@@ -366,19 +366,17 @@ impl<'a> Interconnect<'a> {
             }
             // GPU registers
             io_map::LCD_STAT => self.gpu.set_stat(val),
-            io_map::LCD_SCY  => self.gpu.set_scy(val),
-            io_map::LCD_SCX  => self.gpu.set_scx(val),
-            io_map::LCDC     => self.gpu.set_lcdc(val),
-            io_map::LCD_LY   => { /* Read Only */ }
-            io_map::LCD_LYC  => self.gpu.set_lyc(val),
-            io_map::LCD_BGP  => self.gpu.set_bgp(val),
+            io_map::LCD_SCY => self.gpu.set_scy(val),
+            io_map::LCD_SCX => self.gpu.set_scx(val),
+            io_map::LCDC => self.gpu.set_lcdc(val),
+            io_map::LCD_LY => { /* Read Only */ }
+            io_map::LCD_LYC => self.gpu.set_lyc(val),
+            io_map::LCD_BGP => self.gpu.set_bgp(val),
             io_map::LCD_OBP0 => self.gpu.set_obp0(val),
             io_map::LCD_OBP1 => self.gpu.set_obp1(val),
-            io_map::LCD_WY   => self.gpu.set_wy(val),
-            io_map::LCD_WX   => self.gpu.set_wx(val),
-            _                =>
-                warn!("Unhandled IO write to IO 0x{:02x}: 0x{:02x}",
-                       addr, val),
+            io_map::LCD_WY => self.gpu.set_wy(val),
+            io_map::LCD_WX => self.gpu.set_wx(val),
+            _ => warn!("Unhandled IO write to IO 0x{:02x}: 0x{:02x}", addr, val),
         }
     }
 
@@ -398,7 +396,7 @@ impl<'a> Interconnect<'a> {
 }
 
 /// The various sources of interrupt, from highest to lowest priority
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Interrupt {
     /// GPU entered vertical blanking
     VBlank,
@@ -410,14 +408,14 @@ pub enum Interrupt {
 }
 
 /// GB Interrupts, from highest to lowest priority
-#[derive(Clone,Copy,Debug)]
+#[derive(Clone, Copy, Debug)]
 struct Interrupts {
     /// GPU entered vertical blanking
     vblank: bool,
     /// Configurable LCDC interrupt
-    lcdc:   bool,
+    lcdc: bool,
     /// Timer overflow interrupt
-    timer:  bool,
+    timer: bool,
     /// Serial I/O done
     serial: bool,
     /// P10-13 transited from high to low (user pressed button)
@@ -429,8 +427,8 @@ impl Interrupts {
     fn from_register(reg: u8) -> Interrupts {
         Interrupts {
             vblank: reg & 0x01 != 0,
-            lcdc:   reg & 0x02 != 0,
-            timer:  reg & 0x04 != 0,
+            lcdc: reg & 0x02 != 0,
+            timer: reg & 0x04 != 0,
             serial: reg & 0x08 != 0,
             button: reg & 0x10 != 0,
         }
@@ -441,8 +439,8 @@ impl Interrupts {
         let mut r = 0;
 
         r |= (self.vblank as u8) << 0;
-        r |= (self.lcdc   as u8) << 1;
-        r |= (self.timer  as u8) << 2;
+        r |= (self.lcdc as u8) << 1;
+        r |= (self.timer as u8) << 2;
         r |= (self.serial as u8) << 3;
         r |= (self.button as u8) << 4;
 
@@ -454,26 +452,26 @@ mod map {
     //! Game Boy memory map. Memory ranges are inclusive.
 
     /// ROM
-    pub const ROM:           (u16, u16) = (0x0000, 0x7fff);
+    pub const ROM: (u16, u16) = (0x0000, 0x7fff);
     /// Video RAM
-    pub const VRAM:          (u16, u16) = (0x8000, 0x9fff);
+    pub const VRAM: (u16, u16) = (0x8000, 0x9fff);
     /// RAM Bank N
-    pub const RAM_BANK:      (u16, u16) = (0xa000, 0xbfff);
+    pub const RAM_BANK: (u16, u16) = (0xa000, 0xbfff);
     /// Internal RAM
-    pub const IRAM:          (u16, u16) = (0xc000, 0xdfff);
+    pub const IRAM: (u16, u16) = (0xc000, 0xdfff);
     /// Internal RAM echo
-    pub const IRAM_ECHO:     (u16, u16) = (0xe000, 0xfdff);
+    pub const IRAM_ECHO: (u16, u16) = (0xe000, 0xfdff);
     /// Object Attribute Memory
-    pub const OAM:           (u16, u16) = (0xfe00, 0xfe9f);
+    pub const OAM: (u16, u16) = (0xfe00, 0xfe9f);
     /// IO ports
-    pub const IO:            (u16, u16) = (0xff00, 0xff4b);
+    pub const IO: (u16, u16) = (0xff00, 0xff4b);
     /// Register used to unmap the bootrom. Should not be used by
     /// regular games.
-    pub const UNMAP_BOOTROM: u16        = 0xff50;
+    pub const UNMAP_BOOTROM: u16 = 0xff50;
     /// Zero page memory
-    pub const ZERO_PAGE:     (u16, u16) = (0xff80, 0xfffe);
+    pub const ZERO_PAGE: (u16, u16) = (0xff80, 0xfffe);
     /// Interrupt Enable register
-    pub const IEN:           u16        = 0xffff;
+    pub const IEN: u16 = 0xffff;
 
     /// Return `Some(offset)` if the given address is in the inclusive
     /// range `range`, Where `offset` is an u16 equal to the offset of
@@ -500,90 +498,90 @@ mod io_map {
     //! IO Address Map (offset from 0xff00)
 
     /// Input button matrix control
-    pub const INPUT:         u16 = 0x00;
+    pub const INPUT: u16 = 0x00;
     /// Serial data
-    pub const SB:            u16 = 0x01;
+    pub const SB: u16 = 0x01;
     /// Serial control
-    pub const SC:            u16 = 0x02;
+    pub const SC: u16 = 0x02;
     /// 16.384kHz free-running counter. Writing to it resets it to 0.
-    pub const DIV:           u16 = 0x04;
+    pub const DIV: u16 = 0x04;
     /// Configurable timer counter
-    pub const TIMA:          u16 = 0x05;
+    pub const TIMA: u16 = 0x05;
     /// Configurable timer modulo (value reloaded in the counter after
     /// oveflow)
-    pub const TMA:           u16 = 0x06;
+    pub const TMA: u16 = 0x06;
     /// Timer control register
-    pub const TAC:           u16 = 0x07;
+    pub const TAC: u16 = 0x07;
     /// Interrupt Flag register
-    pub const IF:            u16 = 0x0f;
+    pub const IF: u16 = 0x0f;
     /// Sound channel 1 register 0
-    pub const NR10:          u16 = 0x10;
+    pub const NR10: u16 = 0x10;
     /// Sound channel 1 register 1
-    pub const NR11:          u16 = 0x11;
+    pub const NR11: u16 = 0x11;
     /// Sound channel 1 register 2
-    pub const NR12:          u16 = 0x12;
+    pub const NR12: u16 = 0x12;
     /// Sound channel 1 register 3
-    pub const NR13:          u16 = 0x13;
+    pub const NR13: u16 = 0x13;
     /// Sound channel 1 register 4
-    pub const NR14:          u16 = 0x14;
+    pub const NR14: u16 = 0x14;
     /// Sound channel 2 register 1
-    pub const NR21:          u16 = 0x16;
+    pub const NR21: u16 = 0x16;
     /// Sound channel 2 register 2
-    pub const NR22:          u16 = 0x17;
+    pub const NR22: u16 = 0x17;
     /// Sound channel 2 register 3
-    pub const NR23:          u16 = 0x18;
+    pub const NR23: u16 = 0x18;
     /// Sound channel 2 register 4
-    pub const NR24:          u16 = 0x19;
+    pub const NR24: u16 = 0x19;
     /// Sound channel 1 register 0
-    pub const NR30:          u16 = 0x1a;
+    pub const NR30: u16 = 0x1a;
     /// Sound channel 1 register 1
-    pub const NR31:          u16 = 0x1b;
+    pub const NR31: u16 = 0x1b;
     /// Sound channel 1 register 2
-    pub const NR32:          u16 = 0x1c;
+    pub const NR32: u16 = 0x1c;
     /// Sound channel 1 register 3
-    pub const NR33:          u16 = 0x1d;
+    pub const NR33: u16 = 0x1d;
     /// Sound channel 1 register 4
-    pub const NR34:          u16 = 0x1e;
+    pub const NR34: u16 = 0x1e;
     /// Sound channel 4 register 1
-    pub const NR41:          u16 = 0x20;
+    pub const NR41: u16 = 0x20;
     /// Sound channel 4 register 2
-    pub const NR42:          u16 = 0x21;
+    pub const NR42: u16 = 0x21;
     /// Sound channel 4 register 3
-    pub const NR43:          u16 = 0x22;
+    pub const NR43: u16 = 0x22;
     /// Sound channel 4 register 4
-    pub const NR44:          u16 = 0x23;
+    pub const NR44: u16 = 0x23;
     /// Sound control: output volume
-    pub const NR50:          u16 = 0x24;
+    pub const NR50: u16 = 0x24;
     /// Sound control: select output terminal
-    pub const NR51:          u16 = 0x25;
+    pub const NR51: u16 = 0x25;
     /// Sound control: set global enable and get sound status
-    pub const NR52:          u16 = 0x26;
+    pub const NR52: u16 = 0x26;
     /// Sound channel 3 sample RAM start
     pub const NR3_RAM_START: u16 = 0x30;
     /// Sound channel 3 sample RAM end
-    pub const NR3_RAM_END:   u16 = 0x3f;
+    pub const NR3_RAM_END: u16 = 0x3f;
     /// LCD Control
-    pub const LCDC:          u16 = 0x40;
+    pub const LCDC: u16 = 0x40;
     /// LCDC Status + IT selection
-    pub const LCD_STAT:      u16 = 0x41;
+    pub const LCD_STAT: u16 = 0x41;
     /// LCDC Background Y position
-    pub const LCD_SCY:       u16 = 0x42;
+    pub const LCD_SCY: u16 = 0x42;
     /// LCDC Background X position
-    pub const LCD_SCX:       u16 = 0x43;
+    pub const LCD_SCX: u16 = 0x43;
     /// Currently displayed line
-    pub const LCD_LY:        u16 = 0x44;
+    pub const LCD_LY: u16 = 0x44;
     /// Currently line compare
-    pub const LCD_LYC:       u16 = 0x45;
+    pub const LCD_LYC: u16 = 0x45;
     /// DMA transfer from ROM/RAM to OAM
-    pub const DMA:           u16 = 0x46;
+    pub const DMA: u16 = 0x46;
     /// Background palette
-    pub const LCD_BGP:       u16 = 0x47;
+    pub const LCD_BGP: u16 = 0x47;
     /// Sprite palette 0
-    pub const LCD_OBP0:      u16 = 0x48;
+    pub const LCD_OBP0: u16 = 0x48;
     /// Sprite palette 1
-    pub const LCD_OBP1:      u16 = 0x49;
+    pub const LCD_OBP1: u16 = 0x49;
     /// Window Y position
-    pub const LCD_WY:        u16 = 0x4a;
+    pub const LCD_WY: u16 = 0x4a;
     /// Window X position + 7
-    pub const LCD_WX:        u16 = 0x4b;
+    pub const LCD_WX: u16 = 0x4b;
 }

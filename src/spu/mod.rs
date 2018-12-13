@@ -2,70 +2,68 @@
 
 use std::sync::mpsc::{sync_channel, Receiver, SyncSender, TrySendError};
 
-use spu::rectangle_wave::{RectangleWave, DutyCycle, Sweep};
 use spu::envelope::Envelope;
-use spu::lfsr_wave::{LfsrWave, Lfsr};
-use spu::ram_wave::{RamWave, OutputLevel};
+use spu::lfsr_wave::{Lfsr, LfsrWave};
+use spu::ram_wave::{OutputLevel, RamWave};
+use spu::rectangle_wave::{DutyCycle, RectangleWave, Sweep};
 
 mod envelope;
-mod rectangle_wave;
-mod ram_wave;
 mod lfsr_wave;
+mod ram_wave;
+mod rectangle_wave;
 
 /// Sound Processing Unit state.
 pub struct Spu {
     /// True if the sound circuit is enabled
-    enabled:  bool,
+    enabled: bool,
     /// Counter for the SAMPLER_DIVIDER
-    divider:  u32,
+    divider: u32,
     /// Channel used to send the generated audio samples to the
     /// backend.
-    output:   SyncSender<SampleBuffer>,
+    output: SyncSender<SampleBuffer>,
     /// Current sample buffer
-    buffer:   SampleBuffer,
+    buffer: SampleBuffer,
     /// Position in the sample buffer
     position: usize,
     /// Sound 1, rectangular wave with envelope function and
     /// frequency sweep
-    sound1:   RectangleWave,
+    sound1: RectangleWave,
     /// Sound 2, same as sound 1 without frequency sweep
-    sound2:   RectangleWave,
+    sound2: RectangleWave,
     /// Sound 3 plays samples stored in RAM
-    sound3:   RamWave,
+    sound3: RamWave,
     /// Sound 4, LFSR based noise generator with envelope function
-    sound4:   LfsrWave,
+    sound4: LfsrWave,
     /// Sound Output 1
-    so1:      SoundOutput,
+    so1: SoundOutput,
     /// Sound Output 2
-    so2:      SoundOutput,
+    so2: SoundOutput,
 }
 
 impl Spu {
     pub fn new() -> (Spu, Receiver<SampleBuffer>) {
-
         let (tx, rx) = sync_channel(CHANNEL_DEPTH);
 
         let spu = Spu {
-            enabled:  false,
-            divider:  0,
-            output:   tx,
-            buffer:   [0; SAMPLES_PER_BUFFER],
+            enabled: false,
+            divider: 0,
+            output: tx,
+            buffer: [0; SAMPLES_PER_BUFFER],
             position: 0,
-            sound1:   RectangleWave::new(),
-            sound2:   RectangleWave::new(),
-            sound3:   RamWave::new(),
-            sound4:   LfsrWave::new(),
-            so1:      SoundOutput::new(),
-            so2:      SoundOutput::new(),
+            sound1: RectangleWave::new(),
+            sound2: RectangleWave::new(),
+            sound3: RamWave::new(),
+            sound4: LfsrWave::new(),
+            so1: SoundOutput::new(),
+            so2: SoundOutput::new(),
         };
 
-        (spu , rx)
+        (spu, rx)
     }
 
     pub fn step(&mut self) {
-
         if !self.enabled {
-            return
+            return;
         }
 
         self.sound1.step();
@@ -83,25 +81,22 @@ impl Spu {
     }
 
     fn sample(&mut self) {
-        let sounds =
-                [self.sound1.sample(),
-                 self.sound2.sample(),
-                 self.sound3.sample(),
-                 self.sound4.sample()];
+        let sounds = [
+            self.sound1.sample(),
+            self.sound2.sample(),
+            self.sound3.sample(),
+            self.sound4.sample(),
+        ];
 
         // For now let's just add both outputs
-        let sample =
-            self.so1.sample(sounds) +
-            self.so2.sample(sounds);
+        let sample = self.so1.sample(sounds) + self.so2.sample(sounds);
 
         self.output_sample(sample);
-
     }
 
     /// Handle sample buffering and sending them through the
     /// asynchronous channel.
     fn output_sample(&mut self, sample: Sample) {
-
         self.buffer[self.position] = sample;
 
         self.position += 1;
@@ -110,9 +105,10 @@ impl Spu {
             // Buffer filled, send it over and reset the position
             if let Err(e) = self.output.try_send(self.buffer) {
                 match e {
-                    TrySendError::Full(_) =>
-                        error!("Sound channel is full, dropping {} samples",
-                               self.buffer.len()),
+                    TrySendError::Full(_) => error!(
+                        "Sound channel is full, dropping {} samples",
+                        self.buffer.len()
+                    ),
                     e => panic!("Couldn't send audio buffer: {:?}", e),
                 }
             }
@@ -219,11 +215,10 @@ impl Spu {
 
         self.sound1.set_divider(d);
 
-        self.sound1.set_mode(
-            match val & 0x40 != 0 {
-                true  => Mode::Counter,
-                false => Mode::Continuous,
-            });
+        self.sound1.set_mode(match val & 0x40 != 0 {
+            true => Mode::Counter,
+            false => Mode::Continuous,
+        });
 
         // Initialize bit
         if val & 0x80 != 0 {
@@ -311,11 +306,10 @@ impl Spu {
 
         self.sound2.set_divider(d);
 
-        self.sound2.set_mode(
-            match val & 0x40 != 0 {
-                true  => Mode::Counter,
-                false => Mode::Continuous,
-            });
+        self.sound2.set_mode(match val & 0x40 != 0 {
+            true => Mode::Counter,
+            false => Mode::Continuous,
+        });
 
         // Initialize bit
         if val & 0x80 != 0 {
@@ -411,11 +405,10 @@ impl Spu {
 
         self.sound3.set_divider(d);
 
-        self.sound3.set_mode(
-            match val & 0x40 != 0 {
-                true  => Mode::Counter,
-                false => Mode::Continuous,
-            });
+        self.sound3.set_mode(match val & 0x40 != 0 {
+            true => Mode::Counter,
+            false => Mode::Continuous,
+        });
 
         // Initialize bit
         if val & 0x80 != 0 {
@@ -430,18 +423,18 @@ impl Spu {
 
         let index = index * 2;
 
-        let s0 = (val >> 4)  as Sample;
+        let s0 = (val >> 4) as Sample;
         let s1 = (val & 0xf) as Sample;
 
-        self.sound3.set_ram_sample(index,     s0);
+        self.sound3.set_ram_sample(index, s0);
         self.sound3.set_ram_sample(index + 1, s1);
     }
 
     /// Retreive sound 3 sample RAM register value
     pub fn nr3_ram(&self, index: u8) -> u8 {
         let index = index * 2;
-        let s0    = self.sound3.ram_sample(index)     as u8;
-        let s1    = self.sound3.ram_sample(index + 1) as u8;
+        let s0 = self.sound3.ram_sample(index) as u8;
+        let s1 = self.sound3.ram_sample(index + 1) as u8;
 
         s0 << 4 | s1
     }
@@ -508,11 +501,10 @@ impl Spu {
             return;
         }
 
-        self.sound4.set_mode(
-            match val & 0x40 != 0 {
-                true  => Mode::Counter,
-                false => Mode::Continuous,
-            });
+        self.sound4.set_mode(match val & 0x40 != 0 {
+            true => Mode::Counter,
+            false => Mode::Continuous,
+        });
 
         // Initialize bit
         if val & 0x80 != 0 {
@@ -558,11 +550,11 @@ impl Spu {
 
     /// Get global sound enable and sound status
     pub fn nr52(&self) -> u8 {
-        let enabled = self.enabled          as u8;
-        let r1      = self.sound1.running() as u8;
-        let r2      = self.sound2.running() as u8;
-        let r3      = self.sound3.running() as u8;
-        let r4      = self.sound4.running() as u8;
+        let enabled = self.enabled as u8;
+        let r1 = self.sound1.running() as u8;
+        let r2 = self.sound2.running() as u8;
+        let r3 = self.sound3.running() as u8;
+        let r4 = self.sound4.running() as u8;
 
         enabled << 7 | 0x70 | (r4 << 3) | (r3 << 2) | (r2 << 1) | r1
     }
@@ -591,23 +583,23 @@ impl Spu {
 }
 
 /// Sound can be continuous or stop based on a counter
-#[derive(Clone,Copy,PartialEq,Eq)]
-enum Mode {
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
     Continuous = 0,
-    Counter    = 1,
+    Counter = 1,
 }
 
 /// The Game Boy has two sound outputs: SO0 and SO1
 struct SoundOutput {
     /// Sound mixer for this output
-    mixer:  Mixer,
+    mixer: Mixer,
     volume: OutputVolume,
 }
 
 impl SoundOutput {
     fn new() -> SoundOutput {
         SoundOutput {
-            mixer:  Mixer::from_field(0),
+            mixer: Mixer::from_field(0),
             volume: OutputVolume::from_field(0),
         }
     }
@@ -637,7 +629,7 @@ impl SoundOutput {
 
 /// Each of the 4 sounds can be enabled or disabled
 /// independantly for each sound output.
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 struct Mixer {
     /// The mixer config, says which of the 4 sounds are
     /// selected.
@@ -647,7 +639,6 @@ struct Mixer {
 impl Mixer {
     /// Build a mixer from the NR51 4bit field
     fn from_field(field: u8) -> Mixer {
-
         let mut mixer = Mixer { sounds: [false; 4] };
 
         for i in 0..4 {
@@ -682,10 +673,10 @@ impl Mixer {
 }
 
 /// Sound output volume configuration
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 struct OutputVolume {
     /// Not used for now
-    vin:  bool,
+    vin: bool,
     /// Sound volume divider, between 1 (full volume) and 8(min)
     level: u8,
 }
@@ -697,7 +688,7 @@ impl OutputVolume {
         // input? Maybe GameBoy Color only?
 
         OutputVolume {
-            vin:   field & 8 != 0,
+            vin: field & 8 != 0,
             level: 8 - (field & 7),
         }
     }
@@ -770,7 +761,7 @@ mod tests {
         /// Test register readback value. Write-only fields are
         /// supposed to read as 1s.
         macro_rules! readback_test {
-            ($reg: ident, $setter: ident, $write_only: expr) => (
+            ($reg: ident, $setter: ident, $write_only: expr) => {
                 #[test]
                 fn $reg() {
                     let (mut spu, _) = Spu::new();
@@ -788,33 +779,34 @@ mod tests {
 
                         assert!(r == expected);
                     }
-                })
+                }
+            };
         }
 
-        readback_test!{nr10, set_nr10, 0x80}
-        readback_test!{nr11, set_nr11, 0x3f}
-        readback_test!{nr12, set_nr12, 0x00}
-        readback_test!{nr13, set_nr13, 0xff}
-        readback_test!{nr14, set_nr14, 0xbf}
+        readback_test! {nr10, set_nr10, 0x80}
+        readback_test! {nr11, set_nr11, 0x3f}
+        readback_test! {nr12, set_nr12, 0x00}
+        readback_test! {nr13, set_nr13, 0xff}
+        readback_test! {nr14, set_nr14, 0xbf}
 
-        readback_test!{nr21, set_nr21, 0x3f}
-        readback_test!{nr22, set_nr22, 0x00}
-        readback_test!{nr23, set_nr23, 0xff}
-        readback_test!{nr24, set_nr24, 0xbf}
+        readback_test! {nr21, set_nr21, 0x3f}
+        readback_test! {nr22, set_nr22, 0x00}
+        readback_test! {nr23, set_nr23, 0xff}
+        readback_test! {nr24, set_nr24, 0xbf}
 
-        readback_test!{nr30, set_nr30, 0x7f}
-        readback_test!{nr31, set_nr31, 0xff}
-        readback_test!{nr32, set_nr32, 0x9f}
-        readback_test!{nr33, set_nr33, 0xff}
-        readback_test!{nr34, set_nr34, 0xbf}
+        readback_test! {nr30, set_nr30, 0x7f}
+        readback_test! {nr31, set_nr31, 0xff}
+        readback_test! {nr32, set_nr32, 0x9f}
+        readback_test! {nr33, set_nr33, 0xff}
+        readback_test! {nr34, set_nr34, 0xbf}
 
-        readback_test!{nr41, set_nr41, 0xff}
-        readback_test!{nr42, set_nr42, 0x00}
-        readback_test!{nr43, set_nr43, 0x00}
-        readback_test!{nr44, set_nr44, 0xbf}
+        readback_test! {nr41, set_nr41, 0xff}
+        readback_test! {nr42, set_nr42, 0x00}
+        readback_test! {nr43, set_nr43, 0x00}
+        readback_test! {nr44, set_nr44, 0xbf}
 
-        readback_test!{nr50, set_nr50, 0x00}
-        readback_test!{nr51, set_nr51, 0x00}
+        readback_test! {nr50, set_nr50, 0x00}
+        readback_test! {nr51, set_nr51, 0x00}
 
         #[test]
         fn wave_ram() {
@@ -857,7 +849,7 @@ mod tests {
         use spu::Spu;
 
         macro_rules! readback_test {
-            ($reg: ident, $setter: ident, $write_only: expr) => (
+            ($reg: ident, $setter: ident, $write_only: expr) => {
                 #[test]
                 fn $reg() {
                     let (mut spu, _) = Spu::new();
@@ -883,32 +875,33 @@ mod tests {
                     // All bits except the write-only ones must have
                     // been cleared.
                     assert!(r == $write_only);
-                })
+                }
+            };
         }
 
-        readback_test!{nr10, set_nr10, 0x80}
-        readback_test!{nr11, set_nr11, 0x3f}
-        readback_test!{nr12, set_nr12, 0x00}
-        readback_test!{nr13, set_nr13, 0xff}
-        readback_test!{nr14, set_nr14, 0xbf}
+        readback_test! {nr10, set_nr10, 0x80}
+        readback_test! {nr11, set_nr11, 0x3f}
+        readback_test! {nr12, set_nr12, 0x00}
+        readback_test! {nr13, set_nr13, 0xff}
+        readback_test! {nr14, set_nr14, 0xbf}
 
-        readback_test!{nr21, set_nr21, 0x3f}
-        readback_test!{nr22, set_nr22, 0x00}
-        readback_test!{nr23, set_nr23, 0xff}
-        readback_test!{nr24, set_nr24, 0xbf}
+        readback_test! {nr21, set_nr21, 0x3f}
+        readback_test! {nr22, set_nr22, 0x00}
+        readback_test! {nr23, set_nr23, 0xff}
+        readback_test! {nr24, set_nr24, 0xbf}
 
-        readback_test!{nr30, set_nr30, 0x7f}
-        readback_test!{nr31, set_nr31, 0xff}
-        readback_test!{nr32, set_nr32, 0x9f}
-        readback_test!{nr33, set_nr33, 0xff}
-        readback_test!{nr34, set_nr34, 0xbf}
+        readback_test! {nr30, set_nr30, 0x7f}
+        readback_test! {nr31, set_nr31, 0xff}
+        readback_test! {nr32, set_nr32, 0x9f}
+        readback_test! {nr33, set_nr33, 0xff}
+        readback_test! {nr34, set_nr34, 0xbf}
 
-        readback_test!{nr41, set_nr41, 0xff}
-        readback_test!{nr42, set_nr42, 0x00}
-        readback_test!{nr43, set_nr43, 0x00}
-        readback_test!{nr44, set_nr44, 0xbf}
+        readback_test! {nr41, set_nr41, 0xff}
+        readback_test! {nr42, set_nr42, 0x00}
+        readback_test! {nr43, set_nr43, 0x00}
+        readback_test! {nr44, set_nr44, 0xbf}
 
-        readback_test!{nr50, set_nr50, 0x00}
-        readback_test!{nr51, set_nr51, 0x00}
+        readback_test! {nr50, set_nr50, 0x00}
+        readback_test! {nr51, set_nr51, 0x00}
     }
 }

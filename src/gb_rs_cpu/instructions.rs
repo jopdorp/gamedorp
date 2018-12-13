@@ -5,20 +5,19 @@ use gb_rs_cpu::Cpu;
 /// Retrieve the next instruction to be executed.
 ///
 /// Returns a tuple `(delay, instruction)` as described in `OPCODES`
-pub fn next_instruction(cpu: &mut self::Cpu) -> fn (&mut self::Cpu) {
+pub fn next_instruction(cpu: &mut self::Cpu) -> fn(&mut self::Cpu) {
     let pc = cpu.pc();
 
     let op = cpu.fetch_byte(pc);
 
     cpu.set_pc(pc.wrapping_add(1));
 
-    let (instruction, _) =
-        if op != 0xcb {
-            OPCODES[op as usize]
-        } else {
-            // 0xCB introduces a two-byte bitops opcode
-            bitops::next_instruction(cpu)
-        };
+    let (instruction, _) = if op != 0xcb {
+        OPCODES[op as usize]
+    } else {
+        // 0xCB introduces a two-byte bitops opcode
+        bitops::next_instruction(cpu)
+    };
 
     instruction
 }
@@ -37,279 +36,279 @@ pub fn next_instruction(cpu: &mut self::Cpu) -> fn (&mut self::Cpu) {
 ///
 /// `desc` is a human readable assembler-like description of the
 /// opcode function
-pub static OPCODES: [(fn (&mut self::Cpu), &'static str); 0x100] = [
+pub static OPCODES: [(fn(&mut self::Cpu), &'static str); 0x100] = [
     // Opcodes 0X
-    (nop,        "NOP"),
-    (ld_bc_nn,   "LD BC, NN"),
-    (ld_mbc_a,   "LD [BC], A"),
-    (inc_bc,     "INC BC"),
-    (inc_b,      "INC B"),
-    (dec_b,      "DEC B"),
-    (ld_b_n,     "LD B, N"),
-    (rlca,       "RLCA"),
-    (ld_mnn_sp,  "LD [NN], SP"),
-    (add_hl_bc,  "ADD HL, BC"),
-    (ld_a_mbc,   "LD A, [BC]"),
-    (dec_bc,     "DEC BC"),
-    (inc_c,      "INC C"),
-    (dec_c,      "DEC C"),
-    (ld_c_n,     "LD C, N"),
-    (rrca,       "RRCA"),
+    (nop, "NOP"),
+    (ld_bc_nn, "LD BC, NN"),
+    (ld_mbc_a, "LD [BC], A"),
+    (inc_bc, "INC BC"),
+    (inc_b, "INC B"),
+    (dec_b, "DEC B"),
+    (ld_b_n, "LD B, N"),
+    (rlca, "RLCA"),
+    (ld_mnn_sp, "LD [NN], SP"),
+    (add_hl_bc, "ADD HL, BC"),
+    (ld_a_mbc, "LD A, [BC]"),
+    (dec_bc, "DEC BC"),
+    (inc_c, "INC C"),
+    (dec_c, "DEC C"),
+    (ld_c_n, "LD C, N"),
+    (rrca, "RRCA"),
     // Opcodes 1X
-    (stop,       "STOP"),
-    (ld_de_nn,   "LD DE, NN"),
-    (ld_mde_a,   "LD [DE], A"),
-    (inc_de,     "INC DE"),
-    (inc_d,      "INC D"),
-    (dec_d,      "DEC D"),
-    (ld_d_n,     "LD D, N"),
-    (rla,        "RLA"),
-    (jr_sn,      "JR SN"),
-    (add_hl_de,  "ADD HL, DE"),
-    (ld_a_mde,   "LD A, [DE]"),
-    (dec_de,     "DEC DE"),
-    (inc_e,      "INC E"),
-    (dec_e,      "DEC E"),
-    (ld_e_n,     "LD E, N"),
-    (rra,        "RRA"),
+    (stop, "STOP"),
+    (ld_de_nn, "LD DE, NN"),
+    (ld_mde_a, "LD [DE], A"),
+    (inc_de, "INC DE"),
+    (inc_d, "INC D"),
+    (dec_d, "DEC D"),
+    (ld_d_n, "LD D, N"),
+    (rla, "RLA"),
+    (jr_sn, "JR SN"),
+    (add_hl_de, "ADD HL, DE"),
+    (ld_a_mde, "LD A, [DE]"),
+    (dec_de, "DEC DE"),
+    (inc_e, "INC E"),
+    (dec_e, "DEC E"),
+    (ld_e_n, "LD E, N"),
+    (rra, "RRA"),
     // Opcodes 2X
-    (jr_nz_sn,   "JR NZ, SN"),
-    (ld_hl_nn,   "LD HL, NN"),
-    (ldi_mhl_a,  "LDI [HL], A"),
-    (inc_hl,     "INC HL"),
-    (inc_h,      "INC H"),
-    (dec_h,      "DEC H"),
-    (ld_h_n,     "LD H, N"),
-    (daa,        "DAA"),
-    (jr_z_sn,    "JR Z, SN"),
-    (add_hl_hl,  "ADD HL, HL"),
-    (ldi_a_mhl,  "LDI A, [HL]"),
-    (dec_hl,     "DEC HL"),
-    (inc_l,      "INC L"),
-    (dec_l,      "DEC L"),
-    (ld_l_n,     "LD L, N"),
-    (cpl,        "CPL"),
+    (jr_nz_sn, "JR NZ, SN"),
+    (ld_hl_nn, "LD HL, NN"),
+    (ldi_mhl_a, "LDI [HL], A"),
+    (inc_hl, "INC HL"),
+    (inc_h, "INC H"),
+    (dec_h, "DEC H"),
+    (ld_h_n, "LD H, N"),
+    (daa, "DAA"),
+    (jr_z_sn, "JR Z, SN"),
+    (add_hl_hl, "ADD HL, HL"),
+    (ldi_a_mhl, "LDI A, [HL]"),
+    (dec_hl, "DEC HL"),
+    (inc_l, "INC L"),
+    (dec_l, "DEC L"),
+    (ld_l_n, "LD L, N"),
+    (cpl, "CPL"),
     // Opcodes 3X
-    (jr_nc_sn,   "JR NC, SN"),
-    (ld_sp_nn,   "LD SP, NN"),
-    (ldd_mhl_a,  "LDD [HL], A"),
-    (inc_sp,     "INC SP"),
-    (inc_mhl,    "INC [HL]"),
-    (dec_mhl,    "DEC [HL]"),
-    (ld_mhl_n,   "LD [HL], N"),
-    (scf,        "SCF"),
-    (jr_c_sn,    "JR C, SN"),
-    (add_hl_sp,  "ADD HL, SP"),
-    (ldd_a_mhl,  "LDD A, [HL]"),
-    (dec_sp,     "DEC SP"),
-    (inc_a,      "INC A"),
-    (dec_a,      "DEC A"),
-    (ld_a_n,     "LD A, N"),
-    (ccf,        "CCF"),
+    (jr_nc_sn, "JR NC, SN"),
+    (ld_sp_nn, "LD SP, NN"),
+    (ldd_mhl_a, "LDD [HL], A"),
+    (inc_sp, "INC SP"),
+    (inc_mhl, "INC [HL]"),
+    (dec_mhl, "DEC [HL]"),
+    (ld_mhl_n, "LD [HL], N"),
+    (scf, "SCF"),
+    (jr_c_sn, "JR C, SN"),
+    (add_hl_sp, "ADD HL, SP"),
+    (ldd_a_mhl, "LDD A, [HL]"),
+    (dec_sp, "DEC SP"),
+    (inc_a, "INC A"),
+    (dec_a, "DEC A"),
+    (ld_a_n, "LD A, N"),
+    (ccf, "CCF"),
     // Opcodes 4X
-    (ld_b_b,     "LD B, B"),
-    (ld_b_c,     "LD B, C"),
-    (ld_b_d,     "LD B, D"),
-    (ld_b_e,     "LD B, E"),
-    (ld_b_h,     "LD B, H"),
-    (ld_b_l,     "LD B, L"),
-    (ld_b_mhl,   "LD B, [HL]"),
-    (ld_b_a,     "LD B, A"),
-    (ld_c_b,     "LD C, B"),
-    (ld_c_c,     "LD C, C"),
-    (ld_c_d,     "LD C, D"),
-    (ld_c_e,     "LD C, E"),
-    (ld_c_h,     "LD C, H"),
-    (ld_c_l,     "LD C, L"),
-    (ld_c_mhl,   "LD C, [HL]"),
-    (ld_c_a,     "LD C, A"),
+    (ld_b_b, "LD B, B"),
+    (ld_b_c, "LD B, C"),
+    (ld_b_d, "LD B, D"),
+    (ld_b_e, "LD B, E"),
+    (ld_b_h, "LD B, H"),
+    (ld_b_l, "LD B, L"),
+    (ld_b_mhl, "LD B, [HL]"),
+    (ld_b_a, "LD B, A"),
+    (ld_c_b, "LD C, B"),
+    (ld_c_c, "LD C, C"),
+    (ld_c_d, "LD C, D"),
+    (ld_c_e, "LD C, E"),
+    (ld_c_h, "LD C, H"),
+    (ld_c_l, "LD C, L"),
+    (ld_c_mhl, "LD C, [HL]"),
+    (ld_c_a, "LD C, A"),
     // Opcodes 5X
-    (ld_d_b,     "LD D, B"),
-    (ld_d_c,     "LD D, C"),
-    (ld_d_d,     "LD D, D"),
-    (ld_d_e,     "LD D, E"),
-    (ld_d_h,     "LD D, H"),
-    (ld_d_l,     "LD D, L"),
-    (ld_d_mhl,   "LD D, [HL]"),
-    (ld_d_a,     "LD D, A"),
-    (ld_e_b,     "LD E, B"),
-    (ld_e_c,     "LD E, C"),
-    (ld_e_d,     "LD E, D"),
-    (ld_e_e,     "LD E, E"),
-    (ld_e_h,     "LD E, H"),
-    (ld_e_l,     "LD E, L"),
-    (ld_e_mhl,   "LD E, [HL]"),
-    (ld_e_a,     "LD E, A"),
+    (ld_d_b, "LD D, B"),
+    (ld_d_c, "LD D, C"),
+    (ld_d_d, "LD D, D"),
+    (ld_d_e, "LD D, E"),
+    (ld_d_h, "LD D, H"),
+    (ld_d_l, "LD D, L"),
+    (ld_d_mhl, "LD D, [HL]"),
+    (ld_d_a, "LD D, A"),
+    (ld_e_b, "LD E, B"),
+    (ld_e_c, "LD E, C"),
+    (ld_e_d, "LD E, D"),
+    (ld_e_e, "LD E, E"),
+    (ld_e_h, "LD E, H"),
+    (ld_e_l, "LD E, L"),
+    (ld_e_mhl, "LD E, [HL]"),
+    (ld_e_a, "LD E, A"),
     // Opcodes 6X
-    (ld_h_b,     "LD H, B"),
-    (ld_h_c,     "LD H, C"),
-    (ld_h_d,     "LD H, D"),
-    (ld_h_e,     "LD H, E"),
-    (ld_h_h,     "LD H, H"),
-    (ld_h_l,     "LD H, L"),
-    (ld_h_mhl,   "LD H, [HL]"),
-    (ld_h_a,     "LD H, A"),
-    (ld_l_b,     "LD L, B"),
-    (ld_l_c,     "LD L, C"),
-    (ld_l_d,     "LD L, D"),
-    (ld_l_e,     "LD L, E"),
-    (ld_l_h,     "LD L, H"),
-    (ld_l_l,     "LD L, L"),
-    (ld_l_mhl,   "LD L, [HL]"),
-    (ld_l_a,     "LD L, A"),
+    (ld_h_b, "LD H, B"),
+    (ld_h_c, "LD H, C"),
+    (ld_h_d, "LD H, D"),
+    (ld_h_e, "LD H, E"),
+    (ld_h_h, "LD H, H"),
+    (ld_h_l, "LD H, L"),
+    (ld_h_mhl, "LD H, [HL]"),
+    (ld_h_a, "LD H, A"),
+    (ld_l_b, "LD L, B"),
+    (ld_l_c, "LD L, C"),
+    (ld_l_d, "LD L, D"),
+    (ld_l_e, "LD L, E"),
+    (ld_l_h, "LD L, H"),
+    (ld_l_l, "LD L, L"),
+    (ld_l_mhl, "LD L, [HL]"),
+    (ld_l_a, "LD L, A"),
     // Opcodes 7X
-    (ld_mhl_b,   "LD [HL], B"),
-    (ld_mhl_c,   "LD [HL], C"),
-    (ld_mhl_d,   "LD [HL], D"),
-    (ld_mhl_e,   "LD [HL], E"),
-    (ld_mhl_h,   "LD [HL], H"),
-    (ld_mhl_l,   "LD [HL], L"),
-    (halt,       "HALT"),
-    (ld_mhl_a,   "LD [HL], A"),
-    (ld_a_b,     "LD A, B"),
-    (ld_a_c,     "LD A, C"),
-    (ld_a_d,     "LD A, D"),
-    (ld_a_e,     "LD A, E"),
-    (ld_a_h,     "LD A, H"),
-    (ld_a_l,     "LD A, L"),
-    (ld_a_mhl,   "LD A, [HL]"),
-    (ld_a_a,     "LD A, A"),
+    (ld_mhl_b, "LD [HL], B"),
+    (ld_mhl_c, "LD [HL], C"),
+    (ld_mhl_d, "LD [HL], D"),
+    (ld_mhl_e, "LD [HL], E"),
+    (ld_mhl_h, "LD [HL], H"),
+    (ld_mhl_l, "LD [HL], L"),
+    (halt, "HALT"),
+    (ld_mhl_a, "LD [HL], A"),
+    (ld_a_b, "LD A, B"),
+    (ld_a_c, "LD A, C"),
+    (ld_a_d, "LD A, D"),
+    (ld_a_e, "LD A, E"),
+    (ld_a_h, "LD A, H"),
+    (ld_a_l, "LD A, L"),
+    (ld_a_mhl, "LD A, [HL]"),
+    (ld_a_a, "LD A, A"),
     // Opcodes 8X
-    (add_a_b,    "ADD A, B"),
-    (add_a_c,    "ADD A, C"),
-    (add_a_d,    "ADD A, D"),
-    (add_a_e,    "ADD A, E"),
-    (add_a_h,    "ADD A, H"),
-    (add_a_l,    "ADD A, L"),
-    (add_a_mhl,  "ADD A, [HL]"),
-    (add_a_a,    "ADD A, A"),
-    (adc_a_b,    "ADC A, B"),
-    (adc_a_c,    "ADC A, C"),
-    (adc_a_d,    "ADC A, D"),
-    (adc_a_e,    "ADC A, E"),
-    (adc_a_h,    "ADC A, H"),
-    (adc_a_l,    "ADC A, L"),
-    (adc_a_mhl,  "ADC A, [HL]"),
-    (adc_a_a,    "ADC A, A"),
+    (add_a_b, "ADD A, B"),
+    (add_a_c, "ADD A, C"),
+    (add_a_d, "ADD A, D"),
+    (add_a_e, "ADD A, E"),
+    (add_a_h, "ADD A, H"),
+    (add_a_l, "ADD A, L"),
+    (add_a_mhl, "ADD A, [HL]"),
+    (add_a_a, "ADD A, A"),
+    (adc_a_b, "ADC A, B"),
+    (adc_a_c, "ADC A, C"),
+    (adc_a_d, "ADC A, D"),
+    (adc_a_e, "ADC A, E"),
+    (adc_a_h, "ADC A, H"),
+    (adc_a_l, "ADC A, L"),
+    (adc_a_mhl, "ADC A, [HL]"),
+    (adc_a_a, "ADC A, A"),
     // Opcodes 9X
-    (sub_a_b,    "SUB A, B"),
-    (sub_a_c,    "SUB A, C"),
-    (sub_a_d,    "SUB A, D"),
-    (sub_a_e,    "SUB A, E"),
-    (sub_a_h,    "SUB A, H"),
-    (sub_a_l,    "SUB A, L"),
-    (sub_a_mhl,  "SUB A, [HL]"),
-    (sub_a_a,    "SUB A, A"),
-    (sbc_a_b,    "SBC A, B"),
-    (sbc_a_c,    "SBC A, C"),
-    (sbc_a_d,    "SBC A, D"),
-    (sbc_a_e,    "SBC A, E"),
-    (sbc_a_h,    "SBC A, H"),
-    (sbc_a_l,    "SBC A, L"),
-    (sbc_a_mhl,  "SBC A, [HL]"),
-    (sbc_a_a,    "SBC A, A"),
+    (sub_a_b, "SUB A, B"),
+    (sub_a_c, "SUB A, C"),
+    (sub_a_d, "SUB A, D"),
+    (sub_a_e, "SUB A, E"),
+    (sub_a_h, "SUB A, H"),
+    (sub_a_l, "SUB A, L"),
+    (sub_a_mhl, "SUB A, [HL]"),
+    (sub_a_a, "SUB A, A"),
+    (sbc_a_b, "SBC A, B"),
+    (sbc_a_c, "SBC A, C"),
+    (sbc_a_d, "SBC A, D"),
+    (sbc_a_e, "SBC A, E"),
+    (sbc_a_h, "SBC A, H"),
+    (sbc_a_l, "SBC A, L"),
+    (sbc_a_mhl, "SBC A, [HL]"),
+    (sbc_a_a, "SBC A, A"),
     // Opcodes AX
-    (and_a_b,    "AND A, B"),
-    (and_a_c,    "AND A, C"),
-    (and_a_d,    "AND A, D"),
-    (and_a_e,    "AND A, E"),
-    (and_a_h,    "AND A, H"),
-    (and_a_l,    "AND A, L"),
-    (and_a_mhl,  "AND A, [HL]"),
-    (and_a_a,    "AND A, A"),
-    (xor_a_b,    "XOR A, B"),
-    (xor_a_c,    "XOR A, C"),
-    (xor_a_d,    "XOR A, D"),
-    (xor_a_e,    "XOR A, E"),
-    (xor_a_h,    "XOR A, H"),
-    (xor_a_l,    "XOR A, L"),
-    (xor_a_mhl,  "XOR A, [HL]"),
-    (xor_a_a,    "XOR A, A"),
+    (and_a_b, "AND A, B"),
+    (and_a_c, "AND A, C"),
+    (and_a_d, "AND A, D"),
+    (and_a_e, "AND A, E"),
+    (and_a_h, "AND A, H"),
+    (and_a_l, "AND A, L"),
+    (and_a_mhl, "AND A, [HL]"),
+    (and_a_a, "AND A, A"),
+    (xor_a_b, "XOR A, B"),
+    (xor_a_c, "XOR A, C"),
+    (xor_a_d, "XOR A, D"),
+    (xor_a_e, "XOR A, E"),
+    (xor_a_h, "XOR A, H"),
+    (xor_a_l, "XOR A, L"),
+    (xor_a_mhl, "XOR A, [HL]"),
+    (xor_a_a, "XOR A, A"),
     // Opcodes BX
-    (or_a_b,     "OR A, B"),
-    (or_a_c,     "OR A, C"),
-    (or_a_d,     "OR A, D"),
-    (or_a_e,     "OR A, E"),
-    (or_a_h,     "OR A, H"),
-    (or_a_l,     "OR A, L"),
-    (or_a_mhl,   "OR A, [HL]"),
-    (or_a_a,     "OR A, A"),
-    (cp_a_b,     "CP A, B"),
-    (cp_a_c,     "CP A, C"),
-    (cp_a_d,     "CP A, D"),
-    (cp_a_e,     "CP A, E"),
-    (cp_a_h,     "CP A, H"),
-    (cp_a_l,     "CP A, L"),
-    (cp_a_mhl,   "CP A, [HL]"),
-    (cp_a_a,     "CP A, A"),
+    (or_a_b, "OR A, B"),
+    (or_a_c, "OR A, C"),
+    (or_a_d, "OR A, D"),
+    (or_a_e, "OR A, E"),
+    (or_a_h, "OR A, H"),
+    (or_a_l, "OR A, L"),
+    (or_a_mhl, "OR A, [HL]"),
+    (or_a_a, "OR A, A"),
+    (cp_a_b, "CP A, B"),
+    (cp_a_c, "CP A, C"),
+    (cp_a_d, "CP A, D"),
+    (cp_a_e, "CP A, E"),
+    (cp_a_h, "CP A, H"),
+    (cp_a_l, "CP A, L"),
+    (cp_a_mhl, "CP A, [HL]"),
+    (cp_a_a, "CP A, A"),
     // Opcodes CX
-    (ret_nz,     "RET NZ"),
-    (pop_bc,     "POP BC"),
-    (jp_nz_nn,   "JP NZ, NN"),
-    (jp_nn,      "JP NN"),
+    (ret_nz, "RET NZ"),
+    (pop_bc, "POP BC"),
+    (jp_nz_nn, "JP NZ, NN"),
+    (jp_nn, "JP NN"),
     (call_nz_nn, "CALL NZ, NN"),
-    (push_bc,    "PUSH BC"),
-    (add_a_n,    "ADD A, N"),
-    (rst_00,     "RST 00"),
-    (ret_z,      "RET Z"),
-    (ret,        "RET"),
-    (jp_z_nn,    "JP Z, NN"),
-    (undefined,  "UNDEFINED"), // See bitops opcode map
-    (call_z_nn,  "CALL Z, NN"),
-    (call_nn,    "CALL NN"),
-    (adc_a_n,    "ADC A, N"),
-    (rst_08,     "RST 08"),
+    (push_bc, "PUSH BC"),
+    (add_a_n, "ADD A, N"),
+    (rst_00, "RST 00"),
+    (ret_z, "RET Z"),
+    (ret, "RET"),
+    (jp_z_nn, "JP Z, NN"),
+    (undefined, "UNDEFINED"), // See bitops opcode map
+    (call_z_nn, "CALL Z, NN"),
+    (call_nn, "CALL NN"),
+    (adc_a_n, "ADC A, N"),
+    (rst_08, "RST 08"),
     // Opcodes DX
-    (ret_nc,     "RET NC"),
-    (pop_de,     "POP DE"),
-    (jp_nc_nn,   "JP NC, NN"),
-    (undefined,  "UNDEFINED"),
+    (ret_nc, "RET NC"),
+    (pop_de, "POP DE"),
+    (jp_nc_nn, "JP NC, NN"),
+    (undefined, "UNDEFINED"),
     (call_nc_nn, "CALL NC, NN"),
-    (push_de,    "PUSH DE"),
-    (sub_a_n,    "SUB A, N"),
-    (rst_10,     "RST 10"),
-    (ret_c,      "RET C"),
-    (reti,       "RETI"),
-    (jp_c_nn,    "JP C, NN"),
-    (undefined,  "UNDEFINED"),
-    (call_c_nn,  "CALL C, NN"),
-    (undefined,  "UNDEFINED"),
-    (sbc_a_n,    "SBC A, N"),
-    (rst_18,     "RST 18"),
+    (push_de, "PUSH DE"),
+    (sub_a_n, "SUB A, N"),
+    (rst_10, "RST 10"),
+    (ret_c, "RET C"),
+    (reti, "RETI"),
+    (jp_c_nn, "JP C, NN"),
+    (undefined, "UNDEFINED"),
+    (call_c_nn, "CALL C, NN"),
+    (undefined, "UNDEFINED"),
+    (sbc_a_n, "SBC A, N"),
+    (rst_18, "RST 18"),
     // Opcodes EX
-    (ldh_mn_a,   "LDH [N], A"),
-    (pop_hl,     "POP HL"),
-    (ldh_mc_a,   "LDH [C], A"),
-    (undefined,  "UNDEFINED"),
-    (undefined,  "UNDEFINED"),
-    (push_hl,    "PUSH HL"),
-    (and_a_n,    "AND A, N"),
-    (rst_20,     "RST 20"),
-    (add_sp_sn,  "ADD SP, SN"),
-    (jp_hl,      "JP HL"),
-    (ld_mnn_a,   "LD [NN], A"),
-    (undefined,  "UNDEFINED"),
-    (undefined,  "UNDEFINED"),
-    (undefined,  "UNDEFINED"),
-    (xor_a_n,    "XOR A, N"),
-    (rst_28,     "RST 28"),
+    (ldh_mn_a, "LDH [N], A"),
+    (pop_hl, "POP HL"),
+    (ldh_mc_a, "LDH [C], A"),
+    (undefined, "UNDEFINED"),
+    (undefined, "UNDEFINED"),
+    (push_hl, "PUSH HL"),
+    (and_a_n, "AND A, N"),
+    (rst_20, "RST 20"),
+    (add_sp_sn, "ADD SP, SN"),
+    (jp_hl, "JP HL"),
+    (ld_mnn_a, "LD [NN], A"),
+    (undefined, "UNDEFINED"),
+    (undefined, "UNDEFINED"),
+    (undefined, "UNDEFINED"),
+    (xor_a_n, "XOR A, N"),
+    (rst_28, "RST 28"),
     // Opcodes FX
-    (ldh_a_mn,   "LDH A, [N]"),
-    (pop_af,     "POP AF"),
-    (ldh_a_mc,   "LDH A, [C]"),
-    (di,         "DI"),
-    (undefined,  "UNDEFINED"),
-    (push_af,    "PUSH AF"),
-    (or_a_n,     "OR A, N"),
-    (rst_30,     "RST 30"),
-    (ld_hl_sp_sn,"LD HL, SP, SN"),
-    (ld_sp_hl,   "LD SP, HL"),
-    (ld_a_mnn,   "LD A, [NN]"),
-    (ei,         "EI"),
-    (undefined,  "UNDEFINED"),
-    (undefined,  "UNDEFINED"),
-    (cp_a_n,     "CP A, N"),
-    (rst_38,     "RST 38"),
+    (ldh_a_mn, "LDH A, [N]"),
+    (pop_af, "POP AF"),
+    (ldh_a_mc, "LDH A, [C]"),
+    (di, "DI"),
+    (undefined, "UNDEFINED"),
+    (push_af, "PUSH AF"),
+    (or_a_n, "OR A, N"),
+    (rst_30, "RST 30"),
+    (ld_hl_sp_sn, "LD HL, SP, SN"),
+    (ld_sp_hl, "LD SP, HL"),
+    (ld_a_mnn, "LD A, [NN]"),
+    (ei, "EI"),
+    (undefined, "UNDEFINED"),
+    (undefined, "UNDEFINED"),
+    (cp_a_n, "CP A, N"),
+    (rst_38, "RST 38"),
 ];
 
 /// For multi-byte instructions: return the byte at `pc` and increment `pc`
@@ -333,8 +332,7 @@ fn next_word(cpu: &mut self::Cpu) -> u16 {
 }
 
 /// No operation
-fn nop(_: &mut self::Cpu) {
-}
+fn nop(_: &mut self::Cpu) {}
 
 /// Undefined opcode. Stall the CPU.
 fn undefined(cpu: &mut self::Cpu) {
@@ -414,7 +412,7 @@ fn cpl(cpu: &mut self::Cpu) {
 
 /// Decimal adjust `A` for BCD operations.
 fn daa(cpu: &mut self::Cpu) {
-    let a          = cpu.a();
+    let a = cpu.a();
     let mut adjust = 0;
 
     // See if we had a carry/borrow for the low nibble in the last
@@ -431,26 +429,25 @@ fn daa(cpu: &mut self::Cpu) {
         adjust |= 0x60;
     }
 
-    let res =
-        if cpu.substract() {
-            // If the operation was a substraction we're done since we
-            // can never end up in the A-F range by substracting
-            // without generating a (half)carry.
-            a.wrapping_sub(adjust)
-        } else {
-            // Additions are a bit more tricky because we might have
-            // to adjust even if we haven't overflowed (and no carry
-            // is present). For instance: 0x8 + 0x4 -> 0xc.
-	    if a & 0x0F > 0x09 {
-                adjust |= 0x06;
-            }
+    let res = if cpu.substract() {
+        // If the operation was a substraction we're done since we
+        // can never end up in the A-F range by substracting
+        // without generating a (half)carry.
+        a.wrapping_sub(adjust)
+    } else {
+        // Additions are a bit more tricky because we might have
+        // to adjust even if we haven't overflowed (and no carry
+        // is present). For instance: 0x8 + 0x4 -> 0xc.
+        if a & 0x0F > 0x09 {
+            adjust |= 0x06;
+        }
 
-	    if a > 0x99 {
-                adjust |= 0x60;
-            }
+        if a > 0x99 {
+            adjust |= 0x60;
+        }
 
-	    a.wrapping_add(adjust)
-        };
+        a.wrapping_add(adjust)
+    };
 
     cpu.set_a(res);
 
@@ -518,32 +515,25 @@ fn ld_l_n(cpu: &mut self::Cpu) {
 }
 
 /// Load `A` into `A` (NOP)
-fn ld_a_a(_: &mut self::Cpu) {
-}
+fn ld_a_a(_: &mut self::Cpu) {}
 
 /// Load `B` into `B` (NOP)
-fn ld_b_b(_: &mut self::Cpu) {
-}
+fn ld_b_b(_: &mut self::Cpu) {}
 
 /// Load `C` into `C` (NOP)
-fn ld_c_c(_: &mut self::Cpu) {
-}
+fn ld_c_c(_: &mut self::Cpu) {}
 
 /// Load `D` into `D` (NOP)
-fn ld_d_d(_: &mut self::Cpu) {
-}
+fn ld_d_d(_: &mut self::Cpu) {}
 
 /// Load `E` into `E` (NOP)
-fn ld_e_e(_: &mut self::Cpu) {
-}
+fn ld_e_e(_: &mut self::Cpu) {}
 
 /// Load `H` into `H` (NOP)
-fn ld_h_h(_: &mut self::Cpu) {
-}
+fn ld_h_h(_: &mut self::Cpu) {}
 
 /// Load `L` into `L` (NOP)
-fn ld_l_l(_: &mut self::Cpu) {
-}
+fn ld_l_l(_: &mut self::Cpu) {}
 
 /// Load `B` into `A`
 fn ld_a_b(cpu: &mut self::Cpu) {
@@ -721,7 +711,7 @@ fn ld_l_a(cpu: &mut self::Cpu) {
 
 /// Store `A` into `[BC]`
 fn ld_mbc_a(cpu: &mut self::Cpu) {
-    let a  = cpu.a();
+    let a = cpu.a();
     let bc = cpu.bc();
 
     cpu.store_byte(bc, a);
@@ -729,7 +719,7 @@ fn ld_mbc_a(cpu: &mut self::Cpu) {
 
 /// Store `A` into `[DE]`
 fn ld_mde_a(cpu: &mut self::Cpu) {
-    let a  = cpu.a();
+    let a = cpu.a();
     let de = cpu.de();
 
     cpu.store_byte(de, a);
@@ -737,7 +727,7 @@ fn ld_mde_a(cpu: &mut self::Cpu) {
 
 /// Store `A` into `[HL]`
 fn ld_mhl_a(cpu: &mut self::Cpu) {
-    let a  = cpu.a();
+    let a = cpu.a();
     let hl = cpu.hl();
 
     cpu.store_byte(hl, a);
@@ -745,7 +735,7 @@ fn ld_mhl_a(cpu: &mut self::Cpu) {
 
 /// Store `B` into `[HL]`
 fn ld_mhl_b(cpu: &mut self::Cpu) {
-    let b  = cpu.b();
+    let b = cpu.b();
     let hl = cpu.hl();
 
     cpu.store_byte(hl, b);
@@ -753,7 +743,7 @@ fn ld_mhl_b(cpu: &mut self::Cpu) {
 
 /// Store `C` into `[HL]`
 fn ld_mhl_c(cpu: &mut self::Cpu) {
-    let c  = cpu.c();
+    let c = cpu.c();
     let hl = cpu.hl();
 
     cpu.store_byte(hl, c);
@@ -761,7 +751,7 @@ fn ld_mhl_c(cpu: &mut self::Cpu) {
 
 /// Store `D` into `[HL]`
 fn ld_mhl_d(cpu: &mut self::Cpu) {
-    let d  = cpu.d();
+    let d = cpu.d();
     let hl = cpu.hl();
 
     cpu.store_byte(hl, d);
@@ -769,7 +759,7 @@ fn ld_mhl_d(cpu: &mut self::Cpu) {
 
 /// Store `E` into `[HL]`
 fn ld_mhl_e(cpu: &mut self::Cpu) {
-    let e  = cpu.e();
+    let e = cpu.e();
     let hl = cpu.hl();
 
     cpu.store_byte(hl, e);
@@ -777,7 +767,7 @@ fn ld_mhl_e(cpu: &mut self::Cpu) {
 
 /// Store `H` into `[HL]`
 fn ld_mhl_h(cpu: &mut self::Cpu) {
-    let h  = cpu.h();
+    let h = cpu.h();
     let hl = cpu.hl();
 
     cpu.store_byte(hl, h);
@@ -785,7 +775,7 @@ fn ld_mhl_h(cpu: &mut self::Cpu) {
 
 /// Store `L` into `[HL]`
 fn ld_mhl_l(cpu: &mut self::Cpu) {
-    let l  = cpu.l();
+    let l = cpu.l();
     let hl = cpu.hl();
 
     cpu.store_byte(hl, l);
@@ -793,7 +783,7 @@ fn ld_mhl_l(cpu: &mut self::Cpu) {
 
 /// Store `N` into `[HL]
 fn ld_mhl_n(cpu: &mut self::Cpu) {
-    let n  = next_byte(cpu);
+    let n = next_byte(cpu);
     let hl = cpu.hl();
 
     cpu.store_byte(hl, n);
@@ -801,7 +791,7 @@ fn ld_mhl_n(cpu: &mut self::Cpu) {
 
 /// Store `A` into `[NN]`
 fn ld_mnn_a(cpu: &mut self::Cpu) {
-    let a  = cpu.a();
+    let a = cpu.a();
     let n = next_word(cpu);
 
     cpu.store_byte(n, a);
@@ -809,7 +799,7 @@ fn ld_mnn_a(cpu: &mut self::Cpu) {
 
 /// Store `SP` into `[NN]`
 fn ld_mnn_sp(cpu: &mut self::Cpu) {
-    let sp  = cpu.sp();
+    let sp = cpu.sp();
     let n = next_word(cpu);
 
     cpu.store_byte(n, sp as u8);
@@ -840,7 +830,7 @@ fn ld_hl_nn(cpu: &mut self::Cpu) {
 /// Load `SP + N` into `HL`
 fn ld_hl_sp_sn(cpu: &mut self::Cpu) {
     let sp = cpu.sp() as i32;
-    let n  = next_byte(cpu) as i8;
+    let n = next_byte(cpu) as i8;
 
     let nn = n as i32;
 
@@ -1074,7 +1064,6 @@ fn ld_l_h(cpu: &mut self::Cpu) {
 
     cpu.set_l(h);
 }
-
 
 /// Load `L` into `H`
 fn ld_h_l(cpu: &mut self::Cpu) {
@@ -1437,7 +1426,7 @@ fn ret_c(cpu: &mut self::Cpu) {
 /// Store `A` into `[HL]` and decrement `HL`
 fn ldd_mhl_a(cpu: &mut self::Cpu) {
     let hl = cpu.hl();
-    let a  = cpu.a();
+    let a = cpu.a();
 
     cpu.store_byte(hl, a);
 
@@ -1457,7 +1446,7 @@ fn ldd_a_mhl(cpu: &mut self::Cpu) {
 /// Store `A` into `[HL]` and increment `HL`
 fn ldi_mhl_a(cpu: &mut self::Cpu) {
     let hl = cpu.hl();
-    let a  = cpu.a();
+    let a = cpu.a();
 
     cpu.store_byte(hl, a);
 
@@ -1771,11 +1760,7 @@ fn inc_sp(cpu: &mut self::Cpu) {
 }
 
 /// Decrement `BC`
-fn
-
-
-
-dec_bc(cpu: &mut self::Cpu) {
+fn dec_bc(cpu: &mut self::Cpu) {
     let bc = cpu.bc();
 
     cpu.set_bc(bc.wrapping_sub(1));
@@ -1886,7 +1871,7 @@ fn cp_a_l(cpu: &mut self::Cpu) {
 
 /// Compare `A` with `[HL]`
 fn cp_a_mhl(cpu: &mut self::Cpu) {
-    let a  = cpu.a();
+    let a = cpu.a();
     let hl = cpu.hl();
 
     let n = cpu.fetch_byte(hl);
@@ -1896,7 +1881,7 @@ fn cp_a_mhl(cpu: &mut self::Cpu) {
 
 /// Compare `A` with immediate value
 fn cp_a_n(cpu: &mut self::Cpu) {
-    let a  = cpu.a();
+    let a = cpu.a();
     let n = next_byte(cpu);
 
     sub_and_set_flags(cpu, a, n);
@@ -1974,7 +1959,7 @@ fn sub_a_l(cpu: &mut self::Cpu) {
 
 /// Substract `[HL]` from `A`
 fn sub_a_mhl(cpu: &mut self::Cpu) {
-    let a  = cpu.a();
+    let a = cpu.a();
     let hl = cpu.hl();
 
     let n = cpu.fetch_byte(hl);
@@ -2084,7 +2069,7 @@ fn sbc_a_l(cpu: &mut self::Cpu) {
 
 /// Substract `[HL]` from `A` with carry
 fn sbc_a_mhl(cpu: &mut self::Cpu) {
-    let a  = cpu.a();
+    let a = cpu.a();
     let hl = cpu.hl();
 
     let n = cpu.fetch_byte(hl);
@@ -2193,7 +2178,7 @@ fn add_a_l(cpu: &mut self::Cpu) {
 
 /// Add `[HL]` to `A`
 fn add_a_mhl(cpu: &mut self::Cpu) {
-    let a  = cpu.a();
+    let a = cpu.a();
     let hl = cpu.hl();
 
     let n = cpu.fetch_byte(hl);
@@ -2303,7 +2288,7 @@ fn adc_a_l(cpu: &mut self::Cpu) {
 
 /// Add `[HL]` to `A` with carry
 fn adc_a_mhl(cpu: &mut self::Cpu) {
-    let a  = cpu.a();
+    let a = cpu.a();
     let hl = cpu.hl();
 
     let n = cpu.fetch_byte(hl);
@@ -2382,7 +2367,7 @@ fn add_hl_sp(cpu: &mut self::Cpu) {
 /// Add signed 8bit immediate value to `SP`
 fn add_sp_sn(cpu: &mut self::Cpu) {
     let sp = cpu.sp() as i32;
-    let n  = next_byte(cpu) as i8;
+    let n = next_byte(cpu) as i8;
 
     let nn = n as i32;
 
@@ -2501,7 +2486,7 @@ fn and_a_l(cpu: &mut self::Cpu) {
 
 /// AND `[HL]` with `A`
 fn and_a_mhl(cpu: &mut self::Cpu) {
-    let a  = cpu.a();
+    let a = cpu.a();
     let hl = cpu.hl();
 
     let n = cpu.fetch_byte(hl);
@@ -2618,7 +2603,7 @@ fn or_a_h(cpu: &mut self::Cpu) {
 
 /// OR `[HL]` with `A`
 fn or_a_mhl(cpu: &mut self::Cpu) {
-    let a  = cpu.a();
+    let a = cpu.a();
     let hl = cpu.hl();
 
     let n = cpu.fetch_byte(hl);
@@ -2732,10 +2717,10 @@ fn xor_a_l(cpu: &mut self::Cpu) {
 
 /// XOR `[HL]` into `A`
 fn xor_a_mhl(cpu: &mut self::Cpu) {
-    let a  = cpu.a();
+    let a = cpu.a();
 
     let hl = cpu.hl();
-    let n  = cpu.fetch_byte(hl);
+    let n = cpu.fetch_byte(hl);
 
     let r = xor(cpu, a, n);
 
@@ -2801,8 +2786,7 @@ mod bitops {
     use gb_rs_cpu::Cpu;
 
     /// Return the 0xCB instruction to be executed
-    pub fn next_instruction(cpu: &mut self::Cpu) -> (fn (&mut self::Cpu),
-                                               &'static str) {
+    pub fn next_instruction(cpu: &mut self::Cpu) -> (fn(&mut self::Cpu), &'static str) {
         let pc = cpu.pc();
 
         cpu.set_pc(pc.wrapping_add(1));
@@ -2814,279 +2798,279 @@ mod bitops {
 
     /// Array similar to the one above, this time for CB-prefixed
     /// instructions
-    pub static OPCODES: [(fn (&mut self::Cpu), &'static str); 0x100] = [
+    pub static OPCODES: [(fn(&mut self::Cpu), &'static str); 0x100] = [
         // Opcodes CB 0X
-        (rlc_b,      "RLC B"),
-        (rlc_c,      "RLC C"),
-        (rlc_d,      "RLC D"),
-        (rlc_e,      "RLC E"),
-        (rlc_h,      "RLC H"),
-        (rlc_l,      "RLC L"),
-        (rlc_mhl,    "RLC [HL]"),
-        (rlc_a,      "RLC A"),
-        (rrc_b,      "RRC B"),
-        (rrc_c,      "RRC C"),
-        (rrc_d,      "RRC D"),
-        (rrc_e,      "RRC E"),
-        (rrc_h,      "RRC H"),
-        (rrc_l,      "RRC L"),
-        (rrc_mhl,    "RRC [HL]"),
-        (rrc_a,      "RRC A"),
+        (rlc_b, "RLC B"),
+        (rlc_c, "RLC C"),
+        (rlc_d, "RLC D"),
+        (rlc_e, "RLC E"),
+        (rlc_h, "RLC H"),
+        (rlc_l, "RLC L"),
+        (rlc_mhl, "RLC [HL]"),
+        (rlc_a, "RLC A"),
+        (rrc_b, "RRC B"),
+        (rrc_c, "RRC C"),
+        (rrc_d, "RRC D"),
+        (rrc_e, "RRC E"),
+        (rrc_h, "RRC H"),
+        (rrc_l, "RRC L"),
+        (rrc_mhl, "RRC [HL]"),
+        (rrc_a, "RRC A"),
         // Opcodes CB 1X
-        (rl_b,       "RL B"),
-        (rl_c,       "RL C"),
-        (rl_d,       "RL D"),
-        (rl_e,       "RL E"),
-        (rl_h,       "RL H"),
-        (rl_l,       "RL L"),
-        (rl_mhl,     "RL [HL]"),
-        (rl_a,       "RL A"),
-        (rr_b,       "RR B"),
-        (rr_c,       "RR C"),
-        (rr_d,       "RR D"),
-        (rr_e,       "RR E"),
-        (rr_h,       "RR H"),
-        (rr_l,       "RR L"),
-        (rr_mhl,     "RR [HL]"),
-        (rr_a,       "RR A"),
+        (rl_b, "RL B"),
+        (rl_c, "RL C"),
+        (rl_d, "RL D"),
+        (rl_e, "RL E"),
+        (rl_h, "RL H"),
+        (rl_l, "RL L"),
+        (rl_mhl, "RL [HL]"),
+        (rl_a, "RL A"),
+        (rr_b, "RR B"),
+        (rr_c, "RR C"),
+        (rr_d, "RR D"),
+        (rr_e, "RR E"),
+        (rr_h, "RR H"),
+        (rr_l, "RR L"),
+        (rr_mhl, "RR [HL]"),
+        (rr_a, "RR A"),
         // Opcodes CB 2X
-        (sla_b,      "SLA B"),
-        (sla_c,      "SLA C"),
-        (sla_d,      "SLA D"),
-        (sla_e,      "SLA E"),
-        (sla_h,      "SLA H"),
-        (sla_l,      "SLA L"),
-        (sla_mhl,    "SLA [HL]"),
-        (sla_a,      "SLA A"),
-        (sra_b,      "SRA B"),
-        (sra_c,      "SRA C"),
-        (sra_d,      "SRA D"),
-        (sra_e,      "SRA E"),
-        (sra_h,      "SRA H"),
-        (sra_l,      "SRA L"),
-        (sra_mhl,    "SRA [HL]"),
-        (sra_a,      "SRA A"),
+        (sla_b, "SLA B"),
+        (sla_c, "SLA C"),
+        (sla_d, "SLA D"),
+        (sla_e, "SLA E"),
+        (sla_h, "SLA H"),
+        (sla_l, "SLA L"),
+        (sla_mhl, "SLA [HL]"),
+        (sla_a, "SLA A"),
+        (sra_b, "SRA B"),
+        (sra_c, "SRA C"),
+        (sra_d, "SRA D"),
+        (sra_e, "SRA E"),
+        (sra_h, "SRA H"),
+        (sra_l, "SRA L"),
+        (sra_mhl, "SRA [HL]"),
+        (sra_a, "SRA A"),
         // Opcodes CB 3X
-        (swap_b,     "SWAP B"),
-        (swap_c,     "SWAP C"),
-        (swap_d,     "SWAP D"),
-        (swap_e,     "SWAP E"),
-        (swap_h,     "SWAP H"),
-        (swap_l,     "SWAP L"),
-        (swap_mhl,   "SWAP [HL]"),
-        (swap_a,     "SWAP A"),
-        (srl_b,      "SRL B"),
-        (srl_c,      "SRL C"),
-        (srl_d,      "SRL D"),
-        (srl_e,      "SRL E"),
-        (srl_h,      "SRL H"),
-        (srl_l,      "SRL L"),
-        (srl_mhl,    "SRL [HL]"),
-        (srl_a,      "SRL A"),
+        (swap_b, "SWAP B"),
+        (swap_c, "SWAP C"),
+        (swap_d, "SWAP D"),
+        (swap_e, "SWAP E"),
+        (swap_h, "SWAP H"),
+        (swap_l, "SWAP L"),
+        (swap_mhl, "SWAP [HL]"),
+        (swap_a, "SWAP A"),
+        (srl_b, "SRL B"),
+        (srl_c, "SRL C"),
+        (srl_d, "SRL D"),
+        (srl_e, "SRL E"),
+        (srl_h, "SRL H"),
+        (srl_l, "SRL L"),
+        (srl_mhl, "SRL [HL]"),
+        (srl_a, "SRL A"),
         // Opcodes CB 4X
-        (bit_b_0,    "BIT B, 0"),
-        (bit_c_0,    "BIT C, 0"),
-        (bit_d_0,    "BIT D, 0"),
-        (bit_e_0,    "BIT E, 0"),
-        (bit_h_0,    "BIT H, 0"),
-        (bit_l_0,    "BIT L, 0"),
-        (bit_mhl_0,  "BIT [HL], 0"),
-        (bit_a_0,    "BIT A, 0"),
-        (bit_b_1,    "BIT B, 1"),
-        (bit_c_1,    "BIT C, 1"),
-        (bit_d_1,    "BIT D, 1"),
-        (bit_e_1,    "BIT E, 1"),
-        (bit_h_1,    "BIT H, 1"),
-        (bit_l_1,    "BIT L, 1"),
-        (bit_mhl_1,  "BIT [HL], 1"),
-        (bit_a_1,    "BIT A, 1"),
+        (bit_b_0, "BIT B, 0"),
+        (bit_c_0, "BIT C, 0"),
+        (bit_d_0, "BIT D, 0"),
+        (bit_e_0, "BIT E, 0"),
+        (bit_h_0, "BIT H, 0"),
+        (bit_l_0, "BIT L, 0"),
+        (bit_mhl_0, "BIT [HL], 0"),
+        (bit_a_0, "BIT A, 0"),
+        (bit_b_1, "BIT B, 1"),
+        (bit_c_1, "BIT C, 1"),
+        (bit_d_1, "BIT D, 1"),
+        (bit_e_1, "BIT E, 1"),
+        (bit_h_1, "BIT H, 1"),
+        (bit_l_1, "BIT L, 1"),
+        (bit_mhl_1, "BIT [HL], 1"),
+        (bit_a_1, "BIT A, 1"),
         // Opcodes CB 5X
-        (bit_b_2,    "BIT B, 2"),
-        (bit_c_2,    "BIT C, 2"),
-        (bit_d_2,    "BIT D, 2"),
-        (bit_e_2,    "BIT E, 2"),
-        (bit_h_2,    "BIT H, 2"),
-        (bit_l_2,    "BIT L, 2"),
-        (bit_mhl_2,  "BIT [HL], 2"),
-        (bit_a_2,    "BIT A, 2"),
-        (bit_b_3,    "BIT B, 3"),
-        (bit_c_3,    "BIT C, 3"),
-        (bit_d_3,    "BIT D, 3"),
-        (bit_e_3,    "BIT E, 3"),
-        (bit_h_3,    "BIT H, 3"),
-        (bit_l_3,    "BIT L, 3"),
-        (bit_mhl_3,  "BIT [HL], 3"),
-        (bit_a_3,    "BIT A, 3"),
+        (bit_b_2, "BIT B, 2"),
+        (bit_c_2, "BIT C, 2"),
+        (bit_d_2, "BIT D, 2"),
+        (bit_e_2, "BIT E, 2"),
+        (bit_h_2, "BIT H, 2"),
+        (bit_l_2, "BIT L, 2"),
+        (bit_mhl_2, "BIT [HL], 2"),
+        (bit_a_2, "BIT A, 2"),
+        (bit_b_3, "BIT B, 3"),
+        (bit_c_3, "BIT C, 3"),
+        (bit_d_3, "BIT D, 3"),
+        (bit_e_3, "BIT E, 3"),
+        (bit_h_3, "BIT H, 3"),
+        (bit_l_3, "BIT L, 3"),
+        (bit_mhl_3, "BIT [HL], 3"),
+        (bit_a_3, "BIT A, 3"),
         // Opcodes CB 6X
-        (bit_b_4,    "BIT B, 4"),
-        (bit_c_4,    "BIT C, 4"),
-        (bit_d_4,    "BIT D, 4"),
-        (bit_e_4,    "BIT E, 4"),
-        (bit_h_4,    "BIT H, 4"),
-        (bit_l_4,    "BIT L, 4"),
-        (bit_mhl_4,  "BIT [HL], 4"),
-        (bit_a_4,    "BIT A, 4"),
-        (bit_b_5,    "BIT B, 5"),
-        (bit_c_5,    "BIT C, 5"),
-        (bit_d_5,    "BIT D, 5"),
-        (bit_e_5,    "BIT E, 5"),
-        (bit_h_5,    "BIT H, 5"),
-        (bit_l_5,    "BIT L, 5"),
-        (bit_mhl_5,  "BIT [HL], 5"),
-        (bit_a_5,    "BIT A, 5"),
+        (bit_b_4, "BIT B, 4"),
+        (bit_c_4, "BIT C, 4"),
+        (bit_d_4, "BIT D, 4"),
+        (bit_e_4, "BIT E, 4"),
+        (bit_h_4, "BIT H, 4"),
+        (bit_l_4, "BIT L, 4"),
+        (bit_mhl_4, "BIT [HL], 4"),
+        (bit_a_4, "BIT A, 4"),
+        (bit_b_5, "BIT B, 5"),
+        (bit_c_5, "BIT C, 5"),
+        (bit_d_5, "BIT D, 5"),
+        (bit_e_5, "BIT E, 5"),
+        (bit_h_5, "BIT H, 5"),
+        (bit_l_5, "BIT L, 5"),
+        (bit_mhl_5, "BIT [HL], 5"),
+        (bit_a_5, "BIT A, 5"),
         // Opcodes CB 7X
-        (bit_b_6,    "BIT B, 6"),
-        (bit_c_6,    "BIT C, 6"),
-        (bit_d_6,    "BIT D, 6"),
-        (bit_e_6,    "BIT E, 6"),
-        (bit_h_6,    "BIT H, 6"),
-        (bit_l_6,    "BIT L, 6"),
-        (bit_mhl_6,  "BIT [HL], 6"),
-        (bit_a_6,    "BIT A, 6"),
-        (bit_b_7,    "BIT B, 7"),
-        (bit_c_7,    "BIT C, 7"),
-        (bit_d_7,    "BIT D, 7"),
-        (bit_e_7,    "BIT E, 7"),
-        (bit_h_7,    "BIT H, 7"),
-        (bit_l_7,    "BIT L, 7"),
-        (bit_mhl_7,  "BIT [HL], 7"),
-        (bit_a_7,    "BIT A, 7"),
+        (bit_b_6, "BIT B, 6"),
+        (bit_c_6, "BIT C, 6"),
+        (bit_d_6, "BIT D, 6"),
+        (bit_e_6, "BIT E, 6"),
+        (bit_h_6, "BIT H, 6"),
+        (bit_l_6, "BIT L, 6"),
+        (bit_mhl_6, "BIT [HL], 6"),
+        (bit_a_6, "BIT A, 6"),
+        (bit_b_7, "BIT B, 7"),
+        (bit_c_7, "BIT C, 7"),
+        (bit_d_7, "BIT D, 7"),
+        (bit_e_7, "BIT E, 7"),
+        (bit_h_7, "BIT H, 7"),
+        (bit_l_7, "BIT L, 7"),
+        (bit_mhl_7, "BIT [HL], 7"),
+        (bit_a_7, "BIT A, 7"),
         // Opcodes CB 8X
-        (res_b_0,    "RES B, 0"),
-        (res_c_0,    "RES C, 0"),
-        (res_d_0,    "RES D, 0"),
-        (res_e_0,    "RES E, 0"),
-        (res_h_0,    "RES H, 0"),
-        (res_l_0,    "RES L, 0"),
-        (res_mhl_0,  "RES [HL], 0"),
-        (res_a_0,    "RES A, 0"),
-        (res_b_1,    "RES B, 1"),
-        (res_c_1,    "RES C, 1"),
-        (res_d_1,    "RES D, 1"),
-        (res_e_1,    "RES E, 1"),
-        (res_h_1,    "RES H, 1"),
-        (res_l_1,    "RES L, 1"),
-        (res_mhl_1,  "RES [HL], 1"),
-        (res_a_1,    "RES A, 1"),
+        (res_b_0, "RES B, 0"),
+        (res_c_0, "RES C, 0"),
+        (res_d_0, "RES D, 0"),
+        (res_e_0, "RES E, 0"),
+        (res_h_0, "RES H, 0"),
+        (res_l_0, "RES L, 0"),
+        (res_mhl_0, "RES [HL], 0"),
+        (res_a_0, "RES A, 0"),
+        (res_b_1, "RES B, 1"),
+        (res_c_1, "RES C, 1"),
+        (res_d_1, "RES D, 1"),
+        (res_e_1, "RES E, 1"),
+        (res_h_1, "RES H, 1"),
+        (res_l_1, "RES L, 1"),
+        (res_mhl_1, "RES [HL], 1"),
+        (res_a_1, "RES A, 1"),
         // Opcodes CB 9X
-        (res_b_2,    "RES B, 2"),
-        (res_c_2,    "RES C, 2"),
-        (res_d_2,    "RES D, 2"),
-        (res_e_2,    "RES E, 2"),
-        (res_h_2,    "RES H, 2"),
-        (res_l_2,    "RES L, 2"),
-        (res_mhl_2,  "RES [HL], 2"),
-        (res_a_2,    "RES A, 2"),
-        (res_b_3,    "RES B, 3"),
-        (res_c_3,    "RES C, 3"),
-        (res_d_3,    "RES D, 3"),
-        (res_e_3,    "RES E, 3"),
-        (res_h_3,    "RES H, 3"),
-        (res_l_3,    "RES L, 3"),
-        (res_mhl_3,  "RES [HL], 3"),
-        (res_a_3,    "RES A, 3"),
+        (res_b_2, "RES B, 2"),
+        (res_c_2, "RES C, 2"),
+        (res_d_2, "RES D, 2"),
+        (res_e_2, "RES E, 2"),
+        (res_h_2, "RES H, 2"),
+        (res_l_2, "RES L, 2"),
+        (res_mhl_2, "RES [HL], 2"),
+        (res_a_2, "RES A, 2"),
+        (res_b_3, "RES B, 3"),
+        (res_c_3, "RES C, 3"),
+        (res_d_3, "RES D, 3"),
+        (res_e_3, "RES E, 3"),
+        (res_h_3, "RES H, 3"),
+        (res_l_3, "RES L, 3"),
+        (res_mhl_3, "RES [HL], 3"),
+        (res_a_3, "RES A, 3"),
         // Opcodes CB AX
-        (res_b_4,    "RES B, 4"),
-        (res_c_4,    "RES C, 4"),
-        (res_d_4,    "RES D, 4"),
-        (res_e_4,    "RES E, 4"),
-        (res_h_4,    "RES H, 4"),
-        (res_l_4,    "RES L, 4"),
-        (res_mhl_4,  "RES [HL], 4"),
-        (res_a_4,    "RES A, 4"),
-        (res_b_5,    "RES B, 5"),
-        (res_c_5,    "RES C, 5"),
-        (res_d_5,    "RES D, 5"),
-        (res_e_5,    "RES E, 5"),
-        (res_h_5,    "RES H, 5"),
-        (res_l_5,    "RES L, 5"),
-        (res_mhl_5,  "RES [HL], 5"),
-        (res_a_5,    "RES A, 5"),
+        (res_b_4, "RES B, 4"),
+        (res_c_4, "RES C, 4"),
+        (res_d_4, "RES D, 4"),
+        (res_e_4, "RES E, 4"),
+        (res_h_4, "RES H, 4"),
+        (res_l_4, "RES L, 4"),
+        (res_mhl_4, "RES [HL], 4"),
+        (res_a_4, "RES A, 4"),
+        (res_b_5, "RES B, 5"),
+        (res_c_5, "RES C, 5"),
+        (res_d_5, "RES D, 5"),
+        (res_e_5, "RES E, 5"),
+        (res_h_5, "RES H, 5"),
+        (res_l_5, "RES L, 5"),
+        (res_mhl_5, "RES [HL], 5"),
+        (res_a_5, "RES A, 5"),
         // Opcodes CB BX
-        (res_b_6,    "RES B, 6"),
-        (res_c_6,    "RES C, 6"),
-        (res_d_6,    "RES D, 6"),
-        (res_e_6,    "RES E, 6"),
-        (res_h_6,    "RES H, 6"),
-        (res_l_6,    "RES L, 6"),
-        (res_mhl_6,  "RES [HL], 6"),
-        (res_a_6,    "RES A, 6"),
-        (res_b_7,    "RES B, 7"),
-        (res_c_7,    "RES C, 7"),
-        (res_d_7,    "RES D, 7"),
-        (res_e_7,    "RES E, 7"),
-        (res_h_7,    "RES H, 7"),
-        (res_l_7,    "RES L, 7"),
-        (res_mhl_7,  "RES [HL], 7"),
-        (res_a_7,    "RES A, 7"),
+        (res_b_6, "RES B, 6"),
+        (res_c_6, "RES C, 6"),
+        (res_d_6, "RES D, 6"),
+        (res_e_6, "RES E, 6"),
+        (res_h_6, "RES H, 6"),
+        (res_l_6, "RES L, 6"),
+        (res_mhl_6, "RES [HL], 6"),
+        (res_a_6, "RES A, 6"),
+        (res_b_7, "RES B, 7"),
+        (res_c_7, "RES C, 7"),
+        (res_d_7, "RES D, 7"),
+        (res_e_7, "RES E, 7"),
+        (res_h_7, "RES H, 7"),
+        (res_l_7, "RES L, 7"),
+        (res_mhl_7, "RES [HL], 7"),
+        (res_a_7, "RES A, 7"),
         // Opcodes CB CX
-        (set_b_0,    "SET B, 0"),
-        (set_c_0,    "SET C, 0"),
-        (set_d_0,    "SET D, 0"),
-        (set_e_0,    "SET E, 0"),
-        (set_h_0,    "SET H, 0"),
-        (set_l_0,    "SET L, 0"),
-        (set_mhl_0,  "SET [HL], 0"),
-        (set_a_0,    "SET A, 0"),
-        (set_b_1,    "SET B, 1"),
-        (set_c_1,    "SET C, 1"),
-        (set_d_1,    "SET D, 1"),
-        (set_e_1,    "SET E, 1"),
-        (set_h_1,    "SET H, 1"),
-        (set_l_1,    "SET L, 1"),
-        (set_mhl_1,  "SET [HL], 1"),
-        (set_a_1,    "SET A, 1"),
+        (set_b_0, "SET B, 0"),
+        (set_c_0, "SET C, 0"),
+        (set_d_0, "SET D, 0"),
+        (set_e_0, "SET E, 0"),
+        (set_h_0, "SET H, 0"),
+        (set_l_0, "SET L, 0"),
+        (set_mhl_0, "SET [HL], 0"),
+        (set_a_0, "SET A, 0"),
+        (set_b_1, "SET B, 1"),
+        (set_c_1, "SET C, 1"),
+        (set_d_1, "SET D, 1"),
+        (set_e_1, "SET E, 1"),
+        (set_h_1, "SET H, 1"),
+        (set_l_1, "SET L, 1"),
+        (set_mhl_1, "SET [HL], 1"),
+        (set_a_1, "SET A, 1"),
         // Opcodes CB DX
-        (set_b_2,    "SET B, 2"),
-        (set_c_2,    "SET C, 2"),
-        (set_d_2,    "SET D, 2"),
-        (set_e_2,    "SET E, 2"),
-        (set_h_2,    "SET H, 2"),
-        (set_l_2,    "SET L, 2"),
-        (set_mhl_2,  "SET [HL], 2"),
-        (set_a_2,    "SET A, 2"),
-        (set_b_3,    "SET B, 3"),
-        (set_c_3,    "SET C, 3"),
-        (set_d_3,    "SET D, 3"),
-        (set_e_3,    "SET E, 3"),
-        (set_h_3,    "SET H, 3"),
-        (set_l_3,    "SET L, 3"),
-        (set_mhl_3,  "SET [HL], 3"),
-        (set_a_3,    "SET A, 3"),
+        (set_b_2, "SET B, 2"),
+        (set_c_2, "SET C, 2"),
+        (set_d_2, "SET D, 2"),
+        (set_e_2, "SET E, 2"),
+        (set_h_2, "SET H, 2"),
+        (set_l_2, "SET L, 2"),
+        (set_mhl_2, "SET [HL], 2"),
+        (set_a_2, "SET A, 2"),
+        (set_b_3, "SET B, 3"),
+        (set_c_3, "SET C, 3"),
+        (set_d_3, "SET D, 3"),
+        (set_e_3, "SET E, 3"),
+        (set_h_3, "SET H, 3"),
+        (set_l_3, "SET L, 3"),
+        (set_mhl_3, "SET [HL], 3"),
+        (set_a_3, "SET A, 3"),
         // Opcodes CB EX
-        (set_b_4,    "SET B, 4"),
-        (set_c_4,    "SET C, 4"),
-        (set_d_4,    "SET D, 4"),
-        (set_e_4,    "SET E, 4"),
-        (set_h_4,    "SET H, 4"),
-        (set_l_4,    "SET L, 4"),
-        (set_mhl_4,  "SET [HL], 4"),
-        (set_a_4,    "SET A, 4"),
-        (set_b_5,    "SET B, 5"),
-        (set_c_5,    "SET C, 5"),
-        (set_d_5,    "SET D, 5"),
-        (set_e_5,    "SET E, 5"),
-        (set_h_5,    "SET H, 5"),
-        (set_l_5,    "SET L, 5"),
-        (set_mhl_5,  "SET [HL], 5"),
-        (set_a_5,    "SET A, 5"),
+        (set_b_4, "SET B, 4"),
+        (set_c_4, "SET C, 4"),
+        (set_d_4, "SET D, 4"),
+        (set_e_4, "SET E, 4"),
+        (set_h_4, "SET H, 4"),
+        (set_l_4, "SET L, 4"),
+        (set_mhl_4, "SET [HL], 4"),
+        (set_a_4, "SET A, 4"),
+        (set_b_5, "SET B, 5"),
+        (set_c_5, "SET C, 5"),
+        (set_d_5, "SET D, 5"),
+        (set_e_5, "SET E, 5"),
+        (set_h_5, "SET H, 5"),
+        (set_l_5, "SET L, 5"),
+        (set_mhl_5, "SET [HL], 5"),
+        (set_a_5, "SET A, 5"),
         // Opcodes CB FX
-        (set_b_6,    "SET B, 6"),
-        (set_c_6,    "SET C, 6"),
-        (set_d_6,    "SET D, 6"),
-        (set_e_6,    "SET E, 6"),
-        (set_h_6,    "SET H, 6"),
-        (set_l_6,    "SET L, 6"),
-        (set_mhl_6,  "SET [HL], 6"),
-        (set_a_6,    "SET A, 6"),
-        (set_b_7,    "SET B, 7"),
-        (set_c_7,    "SET C, 7"),
-        (set_d_7,    "SET D, 7"),
-        (set_e_7,    "SET E, 7"),
-        (set_h_7,    "SET H, 7"),
-        (set_l_7,    "SET L, 7"),
-        (set_mhl_7,  "SET [HL], 7"),
-        (set_a_7,    "SET A, 7"),
+        (set_b_6, "SET B, 6"),
+        (set_c_6, "SET C, 6"),
+        (set_d_6, "SET D, 6"),
+        (set_e_6, "SET E, 6"),
+        (set_h_6, "SET H, 6"),
+        (set_l_6, "SET L, 6"),
+        (set_mhl_6, "SET [HL], 6"),
+        (set_a_6, "SET A, 6"),
+        (set_b_7, "SET B, 7"),
+        (set_c_7, "SET C, 7"),
+        (set_d_7, "SET D, 7"),
+        (set_e_7, "SET E, 7"),
+        (set_h_7, "SET H, 7"),
+        (set_l_7, "SET L, 7"),
+        (set_mhl_7, "SET [HL], 7"),
+        (set_a_7, "SET A, 7"),
     ];
 
     /// Helper function to swap the two nibbles in a `u8` and update
@@ -3166,7 +3150,7 @@ mod bitops {
     /// Swap low and high nibbles of `[HL]`
     fn swap_mhl(cpu: &mut self::Cpu) {
         let hl = cpu.hl();
-        let n  = cpu.fetch_byte(hl);
+        let n = cpu.fetch_byte(hl);
 
         let r = swap(cpu, n);
 
@@ -4341,7 +4325,7 @@ mod bitops {
 
     /// Helper function to shift an `u8` to the right and update CPU
     /// flags.
-    fn srl(cpu: &mut self::Cpu, v: u8)  -> u8 {
+    fn srl(cpu: &mut self::Cpu, v: u8) -> u8 {
         cpu.set_carry(v & 1 != 0);
 
         let r = v >> 1;
@@ -4420,7 +4404,7 @@ mod bitops {
     /// Shift `[HL]` to the right
     fn srl_mhl(cpu: &mut self::Cpu) {
         let hl = cpu.hl();
-        let n  = cpu.fetch_byte(hl);
+        let n = cpu.fetch_byte(hl);
 
         let r = srl(cpu, n);
 
@@ -4429,7 +4413,7 @@ mod bitops {
 
     /// Helper function to shift an `u8` to the left and update CPU
     /// flags.
-    fn sla(cpu: &mut self::Cpu, v: u8)  -> u8 {
+    fn sla(cpu: &mut self::Cpu, v: u8) -> u8 {
         cpu.set_carry(v & 0x80 != 0);
 
         let r = v << 1;
@@ -4508,7 +4492,7 @@ mod bitops {
     /// Shift `[HL]` to the left
     fn sla_mhl(cpu: &mut self::Cpu) {
         let hl = cpu.hl();
-        let n  = cpu.fetch_byte(hl);
+        let n = cpu.fetch_byte(hl);
 
         let r = sla(cpu, n);
 
@@ -4517,7 +4501,7 @@ mod bitops {
 
     /// Helper function to shift an `u8` to the right and update CPU
     /// flags. MSB is not affected.
-    fn sra(cpu: &mut self::Cpu, v: u8)  -> u8 {
+    fn sra(cpu: &mut self::Cpu, v: u8) -> u8 {
         cpu.set_carry(v & 1 != 0);
 
         let r = (v >> 1) | (v & 0x80);
@@ -4596,7 +4580,7 @@ mod bitops {
     /// Shift `[HL]` to the right. MSB is not affected.
     fn sra_mhl(cpu: &mut self::Cpu) {
         let hl = cpu.hl();
-        let n  = cpu.fetch_byte(hl);
+        let n = cpu.fetch_byte(hl);
 
         let r = sra(cpu, n);
 
@@ -4605,7 +4589,7 @@ mod bitops {
 
     /// Helper function to rotate an `u8` to the left and update CPU
     /// flags.
-    fn rlc(cpu: &mut self::Cpu, v: u8)  -> u8 {
+    fn rlc(cpu: &mut self::Cpu, v: u8) -> u8 {
         cpu.set_carry(v & 0x80 != 0);
 
         let r = (v << 1) | (v >> 7);
@@ -4685,7 +4669,7 @@ mod bitops {
     /// Rotate `[HL]` to the left
     fn rlc_mhl(cpu: &mut self::Cpu) {
         let hl = cpu.hl();
-        let n  = cpu.fetch_byte(hl);
+        let n = cpu.fetch_byte(hl);
 
         let r = rlc(cpu, n);
 
@@ -4694,7 +4678,7 @@ mod bitops {
 
     /// Helper function to rotate an `u8` to the right and update CPU
     /// flags.
-    fn rrc(cpu: &mut self::Cpu, v: u8)  -> u8 {
+    fn rrc(cpu: &mut self::Cpu, v: u8) -> u8 {
         cpu.set_carry(v & 1 != 0);
 
         let r = (v >> 1) | (v << 7);
@@ -4774,7 +4758,7 @@ mod bitops {
     /// Rotate `[HL]` to the right
     fn rrc_mhl(cpu: &mut self::Cpu) {
         let hl = cpu.hl();
-        let n  = cpu.fetch_byte(hl);
+        let n = cpu.fetch_byte(hl);
 
         let r = rrc(cpu, n);
 
@@ -4783,7 +4767,7 @@ mod bitops {
 
     /// Helper function to rotate an `u8` to the left through carry
     /// and update CPU flags.
-    fn rl(cpu: &mut self::Cpu, v: u8)  -> u8 {
+    fn rl(cpu: &mut self::Cpu, v: u8) -> u8 {
         let oldcarry = cpu.carry() as u8;
 
         cpu.set_carry(v & 0x80 != 0);
@@ -4865,17 +4849,16 @@ mod bitops {
     /// Rotate `[HL]` to the left through carry
     fn rl_mhl(cpu: &mut self::Cpu) {
         let hl = cpu.hl();
-        let n  = cpu.fetch_byte(hl);
+        let n = cpu.fetch_byte(hl);
 
         let r = rl(cpu, n);
 
         cpu.store_byte(hl, r);
     }
 
-
     /// Helper function to rotate an `u8` to the right through carry
     /// and update CPU flags.
-    fn rr(cpu: &mut self::Cpu, v: u8)  -> u8 {
+    fn rr(cpu: &mut self::Cpu, v: u8) -> u8 {
         let oldcarry = cpu.carry() as u8;
 
         cpu.set_carry(v & 0x1 != 0);
@@ -4957,7 +4940,7 @@ mod bitops {
     /// Rotate `[HL]` to the right through carry
     fn rr_mhl(cpu: &mut self::Cpu) {
         let hl = cpu.hl();
-        let n  = cpu.fetch_byte(hl);
+        let n = cpu.fetch_byte(hl);
 
         let r = rr(cpu, n);
 

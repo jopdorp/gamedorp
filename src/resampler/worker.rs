@@ -2,29 +2,27 @@
 
 use super::Async;
 
-use std::sync::Arc;
+use num::{Bounded, FromPrimitive, Integer};
 use spu::{SampleBuffer, SAMPLE_MAX};
-use std::sync::mpsc::Receiver;
-use num::{Integer, Bounded, FromPrimitive};
 use std::default::Default;
+use std::sync::mpsc::Receiver;
+use std::sync::Arc;
 
 /// Asynchronous worker tasked doing the actual adaptative resampling
 pub struct AsyncResampler<T: Send> {
     /// Channel used to receive the samples from the emulator
     source: Receiver<SampleBuffer>,
     /// Asynchronous FIFO used to send samples to the backend
-    async:  Arc<Async<T>>,
+    async: Arc<Async<T>>,
     /// offset into the next buffer
     offset: f32,
 }
 
 impl<T> AsyncResampler<T>
-    where T: Copy + Send + Default + Integer
-             + Bounded + FromPrimitive + 'static {
-
-    pub fn new(source:     Receiver<SampleBuffer>,
-               async:      Arc<Async<T>>) -> AsyncResampler<T> {
-
+where
+    T: Copy + Send + Default + Integer + Bounded + FromPrimitive + 'static,
+{
+    pub fn new(source: Receiver<SampleBuffer>, async: Arc<Async<T>>) -> AsyncResampler<T> {
         AsyncResampler {
             source: source,
             async: async,
@@ -33,7 +31,7 @@ impl<T> AsyncResampler<T>
     }
 
     pub fn resample(&mut self) {
-        let range: T   = T::max_value();
+        let range: T = T::max_value();
         let sample_max = T::from_u8(SAMPLE_MAX).unwrap();
 
         while let Ok(buf) = self.source.recv() {
@@ -44,8 +42,7 @@ impl<T> AsyncResampler<T>
             // FIFO. This is the algorithm used by libretro.
             let fifo_depth = atomic.fifo.capacity() as f32;
 
-            let adj = (fifo_depth - (2 * atomic.fifo.len()) as f32)
-                / fifo_depth;
+            let adj = (fifo_depth - (2 * atomic.fifo.len()) as f32) / fifo_depth;
             let adj = 1. + adj * DEVIATION;
 
             let factor = atomic.ratio / adj;

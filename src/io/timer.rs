@@ -21,12 +21,12 @@ pub struct Timer {
 impl Timer {
     pub fn new() -> Timer {
         Timer {
-            counter:     0,
-            modulo:      0,
-            enabled:     false,
-            divider:     Divider::Div1024,
+            counter: 0,
+            modulo: 0,
+            enabled: false,
+            divider: Divider::Div1024,
             counter_16k: 0,
-            interrupt:   false,
+            interrupt: false,
         }
     }
 
@@ -122,14 +122,14 @@ impl Timer {
 }
 
 /// Possible divider values usable as timer clock source.
-#[derive(Clone,Copy,Debug,PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Divider {
     /// Divide sysclk by 16. Timer clock is 262.144kHz
-    Div16   = 4,
+    Div16 = 4,
     /// Divide sysclk by 64. Timer clock is 65.536kHz
-    Div64   = 6,
+    Div64 = 6,
     /// Divide sysclk by 256. Timer clock is 16.384kHz
-    Div256  = 8,
+    Div256 = 8,
     /// Divide sysclk by 1024. Timer clock is 4.096kHz
     Div1024 = 10,
 }

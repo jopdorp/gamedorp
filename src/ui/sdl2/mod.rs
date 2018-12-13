@@ -1,15 +1,14 @@
-
 use std::cell::Cell;
 
 // Re-export the public interface defined in sub-modules
-pub use ui::sdl2::display::Display;
-pub use ui::sdl2::controller::Controller;
-pub use ui::sdl2::audio::Audio;
 use sdl2::Sdl;
+pub use ui::sdl2::audio::Audio;
+pub use ui::sdl2::controller::Controller;
+pub use ui::sdl2::display::Display;
 
-mod display;
 mod audio;
 mod controller;
+mod display;
 
 pub struct Context {
     pub sdl2: Sdl,
@@ -18,8 +17,7 @@ pub struct Context {
 
 impl Context {
     pub fn new() -> Context {
-        let sdl2 =
-            ::sdl2::init().unwrap();
+        let sdl2 = ::sdl2::init().unwrap();
 
         let contr = controller::Controller::new(&sdl2);
 

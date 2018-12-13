@@ -1,7 +1,7 @@
 //! Game Boy CPU emulation
 
-use std::fmt::{Debug, Formatter, Error};
 use io::{Interconnect, Interrupt};
+use std::fmt::{Debug, Error, Formatter};
 
 use gb_rs_cpu::instructions::next_instruction;
 
@@ -10,19 +10,19 @@ mod instructions;
 /// CPU state.
 pub struct Cpu<'a> {
     /// CPU registers (except for `F` register)
-    pub regs:                Registers,
+    pub regs: Registers,
     /// CPU flags (`F` register)
-    pub flags:               Flags,
+    pub flags: Flags,
     /// Interrupt enabled flag
-    iten:                bool,
+    iten: bool,
     /// True if interrupts should be enabled after next instruction
-    iten_enable_next:    bool,
+    iten_enable_next: bool,
     /// CPU halted flag
-    halted:              bool,
+    halted: bool,
     /// Interconnect to access external ressources (RAM, ROM, peripherals...)
-    pub inter:               Interconnect<'a>,
+    pub inter: Interconnect<'a>,
     /// Number of cycles elapsed running the current instruction
-    instruction_cycles:  u8,
+    instruction_cycles: u8,
 }
 
 /// CPU registers. They're 16bit wide but some of them can be accessed
@@ -33,15 +33,15 @@ pub struct Registers {
     /// 16bit Stack Pointer
     pub sp: u16,
     /// 8bit `A` register
-    pub a:  u8,
+    pub a: u8,
     /// 8bit `B` register
-    pub b:  u8,
+    pub b: u8,
     /// 8bit `C` register
-    pub c:  u8,
+    pub c: u8,
     /// 8bit `D` register
-    pub d:  u8,
+    pub d: u8,
     /// 8bit `E` register
-    pub e:  u8,
+    pub e: u8,
     /// 16bit `HL` register. This register can be split in `H` and `L`
     /// like the others but it's often used as a 16bit memory pointer.
     pub hl: u16,
@@ -73,32 +73,32 @@ impl<'a> Cpu<'a> {
         let regs = Registers {
             pc: 0,
             sp: 0,
-            a : 0,
-            b : 0,
-            c : 0,
-            d : 0,
-            e : 0,
+            a: 0,
+            b: 0,
+            c: 0,
+            d: 0,
+            e: 0,
             hl: 0,
         };
 
         Cpu {
             regs: regs,
-            flags: Flags { z: false,
-                           n: false,
-                           h: false,
-                           c: false,
+            flags: Flags {
+                z: false,
+                n: false,
+                h: false,
+                c: false,
             },
-            inter:            inter,
-            iten:             true,
+            inter: inter,
+            iten: true,
             iten_enable_next: true,
-            halted:           false,
+            halted: false,
             instruction_cycles: 0,
         }
     }
 
     /// Execute interrupt handler for `it`
     fn interrupt(&mut self, it: Interrupt) {
-
         // If the CPU was halted it's time to wake it up.
         self.halted = false;
         // Interrupt are disabled when entering an interrupt handler.
@@ -106,8 +106,8 @@ impl<'a> Cpu<'a> {
 
         let handler_addr = match it {
             Interrupt::VBlank => 0x40,
-            Interrupt::Lcdc   => 0x48,
-            Interrupt::Timer  => 0x50,
+            Interrupt::Lcdc => 0x48,
+            Interrupt::Timer => 0x50,
         };
 
         // Push current value to stack
@@ -140,7 +140,7 @@ impl<'a> Cpu<'a> {
     }
 
     /// Push one byte onto the stack and decrement the stack pointer
-    fn push_byte(&mut self, val: u8){
+    fn push_byte(&mut self, val: u8) {
         let mut sp = self.sp();
 
         sp -= 1;
@@ -331,7 +331,7 @@ impl<'a> Cpu<'a> {
         let h = self.flags.h as u8;
         let c = self.flags.c as u8;
 
-        (z << 7) | (n << 6) | ( h << 5) | (c << 4)
+        (z << 7) | (n << 6) | (h << 5) | (c << 4)
     }
 
     /// Set value of the `F` register
@@ -415,13 +415,13 @@ impl<'a> Cpu<'a> {
     /// Disable Interrupts. Takes effect immediately and cancels any
     /// pending interrupt enable request.
     fn disable_interrupts(&mut self) {
-        self.iten             = false;
+        self.iten = false;
         self.iten_enable_next = false;
     }
 
     /// Enable Interrupts immediately
     fn enable_interrupts(&mut self) {
-        self.iten             = true;
+        self.iten = true;
         self.iten_enable_next = true;
     }
 
@@ -452,37 +452,67 @@ impl<'a> Debug for Cpu<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         try!(writeln!(f, "Registers:"));
 
-        try!(writeln!(f, "  pc: 0x{:04x} [{:02X} {:02X} {:02X} ...]",
-                      self.pc(),
-                      self.inter.fetch_byte(self.pc()),
-                      self.inter.fetch_byte(self.pc() + 1),
-                      self.inter.fetch_byte(self.pc() + 2)));
-        try!(writeln!(f, "  sp: 0x{:04x} [{:02X} {:02X} {:02X} ...]",
-                      self.sp(),
-                      self.inter.fetch_byte(self.sp()),
-                      self.inter.fetch_byte(self.sp() + 1),
-                      self.inter.fetch_byte(self.sp() + 2)));
-        try!(writeln!(f, "  af: 0x{:04x}    a: {:3}    f: {:3}",
-                      self.af(), self.a(), self.f()));
-        try!(writeln!(f, "  bc: 0x{:04x}    b: {:3}    c: {:3}",
-                      self.bc(), self.b(), self.c()));
-        try!(writeln!(f, "  de: 0x{:04x}    d: {:3}    d: {:3}",
-                      self.de(), self.d(), self.e()));
-        try!(writeln!(f, "  hl: 0x{:04x}    h: {:3}    l: {:3}    \
-                           [hl]: [{:02X} {:02X} ...]",
-                      self.hl(), self.h(), self.l(),
-                      self.inter.fetch_byte(self.hl()),
-                      self.inter.fetch_byte(self.hl() + 1)));
+        try!(writeln!(
+            f,
+            "  pc: 0x{:04x} [{:02X} {:02X} {:02X} ...]",
+            self.pc(),
+            self.inter.fetch_byte(self.pc()),
+            self.inter.fetch_byte(self.pc() + 1),
+            self.inter.fetch_byte(self.pc() + 2)
+        ));
+        try!(writeln!(
+            f,
+            "  sp: 0x{:04x} [{:02X} {:02X} {:02X} ...]",
+            self.sp(),
+            self.inter.fetch_byte(self.sp()),
+            self.inter.fetch_byte(self.sp() + 1),
+            self.inter.fetch_byte(self.sp() + 2)
+        ));
+        try!(writeln!(
+            f,
+            "  af: 0x{:04x}    a: {:3}    f: {:3}",
+            self.af(),
+            self.a(),
+            self.f()
+        ));
+        try!(writeln!(
+            f,
+            "  bc: 0x{:04x}    b: {:3}    c: {:3}",
+            self.bc(),
+            self.b(),
+            self.c()
+        ));
+        try!(writeln!(
+            f,
+            "  de: 0x{:04x}    d: {:3}    d: {:3}",
+            self.de(),
+            self.d(),
+            self.e()
+        ));
+        try!(writeln!(
+            f,
+            "  hl: 0x{:04x}    h: {:3}    l: {:3}    \
+             [hl]: [{:02X} {:02X} ...]",
+            self.hl(),
+            self.h(),
+            self.l(),
+            self.inter.fetch_byte(self.hl()),
+            self.inter.fetch_byte(self.hl() + 1)
+        ));
 
         try!(writeln!(f, "Flags:"));
 
-        try!(writeln!(f, "  z: {}  n: {}  h: {}  c: {}",
-                      self.flags.z as u8,
-                      self.flags.n as u8,
-                      self.flags.h as u8,
-                      self.flags.c as u8));
+        try!(writeln!(
+            f,
+            "  z: {}  n: {}  h: {}  c: {}",
+            self.flags.z as u8, self.flags.n as u8, self.flags.h as u8, self.flags.c as u8
+        ));
 
-        try!(writeln!(f, "  iten: {}  halted: {}", self.iten, self.halted));
+        try!(writeln!(
+            f,
+            "  iten: {}  halted: {}",
+            self.iten, self.halted
+        ));
 
         Ok(())
     }
@@ -495,7 +525,6 @@ impl<'n> ::cpu::CanRunInstruction for self::Cpu<'n> {
     /// the number of system clock periods ("ticks") elapsed running
     /// the instruction.
     fn run_next_instruction(&mut self) -> u8 {
-
         self.instruction_cycles = 0;
 
         if self.iten {

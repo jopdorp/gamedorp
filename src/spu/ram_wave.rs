@@ -1,41 +1,41 @@
 //! Game Boy sound 3 generates a sound from samples stored in RAM
 
-use spu::{Sample, Mode};
+use spu::{Mode, Sample};
 
 pub struct RamWave {
     /// True if the sound is generating samples
-    running:      bool,
+    running: bool,
     /// True if the sound is enabled
-    enabled:      bool,
+    enabled: bool,
     /// Counter for counter mode
-    remaining:    u32,
+    remaining: u32,
     /// RAM Wave data processing
     output_level: OutputLevel,
     /// Frequency divider value
-    divider:      u16,
+    divider: u16,
     /// Period counter, the period length is configurable and is used
     /// to select the desired output frequency.
-    counter:      u16,
+    counter: u16,
     /// Play mode (continuous or counter)
-    mode:         Mode,
+    mode: Mode,
     /// Custom sample RAM, 32 samples
-    samples:      [Sample; 32],
+    samples: [Sample; 32],
     /// Currently played sample
-    index:        u8,
+    index: u8,
 }
 
 impl RamWave {
     pub fn new() -> RamWave {
         RamWave {
-            running:      false,
-            enabled:      false,
-            remaining:    0x100 * 0x4000,
+            running: false,
+            enabled: false,
+            remaining: 0x100 * 0x4000,
             output_level: OutputLevel::from_field(0),
-            divider:      0,
-            counter:      0,
-            mode:         Mode::Continuous,
-            samples:      [0; 32],
-            index:        0,
+            divider: 0,
+            counter: 0,
+            mode: Mode::Continuous,
+            samples: [0; 32],
+            index: 0,
         }
     }
 
@@ -78,7 +78,6 @@ impl RamWave {
     }
 
     pub fn sample(&self) -> Sample {
-
         if !self.running {
             return 0;
         }
@@ -154,14 +153,14 @@ impl RamWave {
 }
 
 /// The wave data can be didived before being sent out
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 pub enum OutputLevel {
     /// Channel is muted
-    Mute      = 0,
+    Mute = 0,
     /// Output wave data without division
-    Full      = 1,
+    Full = 1,
     /// Output wave data halved
-    Halved    = 2,
+    Halved = 2,
     /// Output wave data divided by four
     Quartered = 3,
 }
@@ -183,9 +182,9 @@ impl OutputLevel {
 
     fn process(self, sample: Sample) -> Sample {
         match self {
-            OutputLevel::Mute      => 0,
-            OutputLevel::Full      => sample,
-            OutputLevel::Halved    => sample / 2,
+            OutputLevel::Mute => 0,
+            OutputLevel::Full => sample,
+            OutputLevel::Halved => sample / 2,
             OutputLevel::Quartered => sample / 4,
         }
     }

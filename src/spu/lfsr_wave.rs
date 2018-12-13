@@ -1,33 +1,33 @@
 //! Game Boy sound 4 generates noise from a Linear Feedback Shift
 //! Register.
 
-use spu::{Sample, Mode};
 use spu::envelope::Envelope;
+use spu::{Mode, Sample};
 
 pub struct LfsrWave {
     /// True if the wave is generating samples
-    running:        bool,
+    running: bool,
     /// Linear Feedback Shift Register
-    lfsr:           Lfsr,
+    lfsr: Lfsr,
     /// Enveloppe that will be used at the next start()
     start_envelope: Envelope,
     /// Active envelope
-    envelope:       Envelope,
+    envelope: Envelope,
     /// Play mode (continuous or counter)
-    mode:           Mode,
+    mode: Mode,
     /// Counter for counter mode
-    remaining:      u32,
+    remaining: u32,
 }
 
 impl LfsrWave {
     pub fn new() -> LfsrWave {
         LfsrWave {
-            lfsr:           Lfsr::from_reg(0),
+            lfsr: Lfsr::from_reg(0),
             start_envelope: Envelope::from_reg(0),
-            envelope:       Envelope::from_reg(0),
-            remaining:      64 * 0x4000,
-            mode:           Mode::Continuous,
-            running:        false,
+            envelope: Envelope::from_reg(0),
+            remaining: 64 * 0x4000,
+            mode: Mode::Continuous,
+            running: false,
         }
     }
 
@@ -44,7 +44,7 @@ impl LfsrWave {
         }
 
         if !self.running {
-             return;
+            return;
         }
 
         self.envelope.step();
@@ -52,7 +52,6 @@ impl LfsrWave {
     }
 
     pub fn sample(&self) -> Sample {
-
         if !self.running {
             return 0;
         }
@@ -112,47 +111,45 @@ impl LfsrWave {
     }
 }
 
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 pub struct Lfsr {
-    register:      u16,
-    width:         LfsrWidth,
+    register: u16,
+    width: LfsrWidth,
     step_duration: u32,
-    counter:       u32,
-    reg:           u8,
+    counter: u32,
+    reg: u8,
 }
 
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 enum LfsrWidth {
     Lfsr15bit = 0,
-    Lfsr7bit  = 1,
+    Lfsr7bit = 1,
 }
 
 impl Lfsr {
     pub fn from_reg(val: u8) -> Lfsr {
-        let (reg, width) =
-            match (val & 8) != 0 {
-                true  => ((1 <<  7) - 1,  LfsrWidth::Lfsr7bit),
-                false => ((1 << 15) - 1,  LfsrWidth::Lfsr15bit),
-            };
+        let (reg, width) = match (val & 8) != 0 {
+            true => ((1 << 7) - 1, LfsrWidth::Lfsr7bit),
+            false => ((1 << 15) - 1, LfsrWidth::Lfsr15bit),
+        };
 
         // There are two divisors in series to generate the LFSR
         // clock.
-        let mut l =
-            match val & 7 {
-                // 0 is 8 * 0.5 so we need to special case it since
-                // we're using integer arithmetics.
-                0 => 8 / 2,
-                n => 8 * n as u32,
-            };
+        let mut l = match val & 7 {
+            // 0 is 8 * 0.5 so we need to special case it since
+            // we're using integer arithmetics.
+            0 => 8 / 2,
+            n => 8 * n as u32,
+        };
 
         l *= 1 << ((val >> 4) + 1) as usize;
 
         Lfsr {
-            register:      reg,
-            width:         width,
+            register: reg,
+            width: width,
             step_duration: l,
-            counter:       0,
-            reg:           val,
+            counter: 0,
+            reg: val,
         }
     }
 
@@ -175,12 +172,11 @@ impl Lfsr {
 
     fn shift(&mut self) {
         let shifted = self.register >> 1;
-        let carry   = (self.register ^ shifted) & 1;
+        let carry = (self.register ^ shifted) & 1;
 
-        self.register =
-            match self.width {
-                LfsrWidth::Lfsr7bit  => shifted | (carry << 6),
-                LfsrWidth::Lfsr15bit => shifted | (carry << 14),
-            };
+        self.register = match self.width {
+            LfsrWidth::Lfsr7bit => shifted | (carry << 6),
+            LfsrWidth::Lfsr15bit => shifted | (carry << 14),
+        };
     }
 }
