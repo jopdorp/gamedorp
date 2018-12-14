@@ -49,26 +49,26 @@ mod test {
             }
             if counter % 10000 == 0 {
                 let instruction = cpu.memory_map.fetch_byte(pc);
-                print!(
+                info!(
                     "cpu1 testing instruction 0x{:x} for pc 0x{:x}\n",
                     instruction,
                     pc
                 );
-                print!(
+                info!(
                     "cpu2 testing instruction 0x{:x} for pc 0x{:x}\n",
                     cpu2.inter.fetch_byte(pc2),
                     pc2
                 );
 
                 if instruction == 0xCB {
-                    print!("cpu cb instruction is 0x{:x}\n", cpu.memory_map.fetch_byte(pc.wrapping_add(1)));
+                    info!("cpu cb instruction is 0x{:x}\n", cpu.memory_map.fetch_byte(pc.wrapping_add(1)));
                 }
             }
             cpu.run_next_instruction();
             cpu2.run_next_instruction();
             if counter % 10000 == 0 {
-                print!("next cpu1 pc {:x}\n", cpu.program_counter);
-                print!("next cpu2 pc {:x}\n", cpu2.regs.pc);
+                info!("next cpu1 pc {:x}\n", cpu.program_counter);
+                info!("next cpu2 pc {:x}\n", cpu2.regs.pc);
                 let flat_cpu1 = flatten(&cpu);
                 let flat_cpu2 = flatten_gr_rs(&cpu2);
                 assert_eq!(flat_cpu1, flat_cpu2);
@@ -79,12 +79,12 @@ mod test {
                     let gamedorp_val = cpu.memory_map.fetch_byte(i);
                     let gb_rs_val = cpu2.inter.fetch_byte(i);
                     if gamedorp_val != gb_rs_val {
-                        print!(
+                        info!(
                             "memory is different at 0x{:x} gamedorp has {:x} gb_rs has {:x}\n",
                             i, gamedorp_val, gb_rs_val
                         );
-                        print!("cpu1 {:?}", flatten(&cpu));
-                        print!("cpu2 {:?}", flatten_gr_rs(&cpu2));
+                        info!("cpu1 {:?}", flatten(&cpu));
+                        info!("cpu2 {:?}", flatten_gr_rs(&cpu2));
                     }
                     assert_eq!(gamedorp_val, gb_rs_val)
                 }

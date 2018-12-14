@@ -47,7 +47,7 @@ fn main() {
     let argv: Vec<_> = std::env::args().collect();
 
     if argv.len() < 2 {
-        println!("Usage: {} <rom-file>", argv[0]);
+        info!("Usage: {} <rom-file>\n", argv[0]);
         return;
     }
 
@@ -58,7 +58,7 @@ fn main() {
         Err(e) => panic!("Failed to load ROM: {}", e),
     };
 
-    println!("Loaded ROM {:?}", cart);
+    info!("Loaded ROM {:?}\n", cart);
 
     let sdl2 = ui::sdl2::Context::new();
     let mut display = sdl2.new_display(5, false);
@@ -128,7 +128,11 @@ fn start_sending_sync_ticks() -> Receiver<()> {
             let current_time = time::precise_time_ns();
             let duration_since_last_tick = current_time - last_time;
             if duration_since_last_tick > batch_duration {
-                last_time = last_time + batch_duration;
+                if duration_since_last_tick < 2 * batch_duration {
+                    last_time = last_time + batch_duration;
+                }else{
+                    last_time = current_time;
+                }
                 if let Err(_) = tick_tx.send(()) {
                     // End thread
                     return;

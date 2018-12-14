@@ -21,9 +21,12 @@ impl Controller {
 
         let game_controller_subsystem = sdl2.game_controller().unwrap();
         let njoysticks = match game_controller_subsystem.num_joysticks() {
-            Ok(n) => n,
+            Ok(n) => {
+                info!("found {} joysticks!\n", n);
+                n
+            },
             Err(e) => {
-                error!("Can't enumarate joysticks: {:?}", e);
+                error!("Can't enumarate joysticks: {:?}\n", e);
                 0
             }
         };
@@ -33,25 +36,26 @@ impl Controller {
         // For now we just take the first controller we manage to open
         // (if any)
         for id in 0..njoysticks {
+            info!("Checking if joystick {} has game controller mapping\n", id);
             if game_controller_subsystem.is_game_controller(id) {
-                println!("Attempting to open controller {}", id);
-
                 match game_controller_subsystem.open(id) {
                     Ok(c) => {
                         // We managed to find and open a game controller,
                         // exit the loop
-                        println!("Successfully opened \"{}\"", c.name());
+                        info!("Successfully opened \"{}\"\n", c.name());
                         controller = Some(c);
                         break;
                     }
-                    Err(e) => println!("failed: {:?}", e),
+                    Err(e) => info!("failed: {:?}\n", e),
                 }
+            }else{
+                info!("Joystick {} has no mapping\n", id);
             }
         }
 
         match controller {
-            Some(_) => println!("Controller support enabled"),
-            None => println!("No controller found"),
+            Some(_) => info!("Controller support enabled"),
+            None => info!("No controller found"),
         }
 
         Controller {

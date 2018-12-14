@@ -193,7 +193,7 @@ impl<'a> Interconnect<'a> {
         if self.bootrom && addr == map::UNMAP_BOOTROM {
             if val == 1 {
                 // Unmap bootrom
-                print!("disabling bootrom!\n");
+                info!("disabling bootrom!\n");
                 self.bootrom = false;
             }
             return;
