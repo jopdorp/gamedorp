@@ -54,8 +54,8 @@ impl Controller {
         }
 
         match controller {
-            Some(_) => info!("Controller support enabled"),
-            None => info!("No controller found"),
+            Some(_) => print!("Controller support enabled"),
+            None => print!("No controller found"),
         }
 
         Controller {

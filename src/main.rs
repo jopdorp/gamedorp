@@ -47,7 +47,7 @@ fn main() {
     let argv: Vec<_> = std::env::args().collect();
 
     if argv.len() < 2 {
-        info!("Usage: {} <rom-file>\n", argv[0]);
+        print!("Usage: {} <rom-file>\n", argv[0]);
         return;
     }
 
@@ -58,10 +58,10 @@ fn main() {
         Err(e) => panic!("Failed to load ROM: {}", e),
     };
 
-    info!("Loaded ROM {:?}\n", cart);
+    print!("Loaded ROM {:?}\n", cart);
 
     let sdl2 = ui::sdl2::Context::new();
-    let mut display = sdl2.new_display(5, false);
+    let mut display = sdl2.new_display(5, true);
     let gpu = gpu::Gpu::new(&mut display);
     let (spu, audio_channel) = spu::Spu::new();
     let mut audio = ui::sdl2::Audio::new(audio_channel, &sdl2.sdl2);
