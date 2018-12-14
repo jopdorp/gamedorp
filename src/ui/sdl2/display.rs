@@ -17,28 +17,27 @@ impl Display {
         let yres = 144 * upscale as u32;
 
         let video_subsystem = sdl2.video().unwrap();
-        video_subsystem.gl_set_swap_interval(SwapInterval::VSync);
+        video_subsystem.gl_set_swap_interval(SwapInterval::Immediate);
         let window = if fullscreen {
             video_subsystem
                 .window("gb-rs", xres, yres)
-                .opengl()
                 .fullscreen()
                 .position_centered()
+				.opengl()
                 .build()
                 .unwrap()
         } else {
             video_subsystem
                 .window("gb-rs", xres, yres)
-                .opengl()
                 .position_centered()
+				.opengl()
                 .build()
                 .unwrap()
         };
 
         let canvas = window
             .into_canvas()
-            .accelerated()
-            .present_vsync()
+            .software()
             .build()
             .unwrap();
 
@@ -68,7 +67,7 @@ impl ::ui::Display for Display {
         self.renderer.set_draw_color(color);
 
         let drawer = &mut self.renderer;
-        if self.upscale == 0 {
+        if self.upscale == 1 {
             let _ = drawer.draw_point(Point::new(x as i32, y as i32));
         } else {
             // Translate coordinates

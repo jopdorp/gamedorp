@@ -19,7 +19,6 @@ lazy_static! {
     .collect();
     pub static ref INSTRUCTIONS_PIPELINE: Vec<fn(&mut Cpu, u8, u8, u8) -> bool> = vec![
         nop,
-        ld_immediate_value_8_bit,
         ld_immediate_value_16_bit,
         load_n_into_hl,
         ld_r1_r2,
@@ -27,7 +26,6 @@ lazy_static! {
         ld_n_into_a,
         ld_a_into_n,
         ldh_n_a,
-        ldh_a_n,
         ld_a_bc,
         ld_a_de,
         ldi_hl_a,
@@ -45,6 +43,7 @@ lazy_static! {
         subtract,
         add_a_n,
         add_hl_n,
+        ldh_a_n,
         xor,
         prefix_cb,
         jump_cc_n,
@@ -73,7 +72,8 @@ lazy_static! {
         cpl,
         ccf,
         rst,
-        halt
+        halt,
+        ld_immediate_value_8_bit,
     ];
     static ref PREFIX_CB_INSTRUCTIONS_PIPELINE: Vec<fn(&mut Cpu, u8, u8, u8) -> bool> =
         vec![test_bit, rl_n, swap, res, sla, set, srl, rr_n];
@@ -1397,16 +1397,11 @@ pub fn split_into_halves(byte: u8) -> (u8, u8) {
 }
 
 fn get_first_half(byte: u8) -> u8 {
-    let mut fh = BitVec::from_bytes(&[byte]);
-    fh.intersect(&BitVec::from_bytes(&[0b11110000]));
-    fh.to_bytes()[0] >> 4
+    (byte & 0b11110000) >> 4
 }
 
 fn get_second_half(byte: u8) -> u8 {
-    let mut sh = BitVec::from_bytes(&[byte]);
-    sh.intersect(&BitVec::from_bytes(&[0b00001111]));
-    let second_half: u8 = sh.to_bytes()[0];
-    second_half
+    byte & 0b00001111
 }
 
 fn set_flags_for_xor(cpu: &mut Cpu) {

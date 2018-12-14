@@ -718,7 +718,7 @@ pub type SampleBuffer = [Sample; SAMPLES_PER_BUFFER];
 /// We buffer the sound samples before we send them to the next
 /// stage. Bigger buffers will reduce the contention on the channel
 /// but it will also increase latency.
-pub const SAMPLES_PER_BUFFER: usize = 0xA0;
+pub const SAMPLES_PER_BUFFER: usize = 0x200;
 
 /// This variable says how many SysClk cycles to wait between each
 /// sound sample. In other words, SYSCLK_FREQ / SAMPLER_DIVIDER gives

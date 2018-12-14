@@ -52,7 +52,7 @@ fn main() {
     println!("Loaded ROM {:?}", cart);
 
     let sdl2 = ui::sdl2::Context::new();
-    let mut display = sdl2.new_display(5, true);
+    let mut display = sdl2.new_display(5, false);
     let gpu = gpu::Gpu::new(&mut display);
     let (spu, audio_channel) = spu::Spu::new();
     let mut audio = ui::sdl2::Audio::new(audio_channel, &sdl2.sdl2);
@@ -120,10 +120,10 @@ fn main() {
 /// Number of instructions executed between sleeps (i.e. giving the
 /// hand back to the scheduler). Low values increase CPU usage and can
 /// result in poor performance, high values will cause stuttering.
-const GRANULARITY: u64 = 0x10000;
+const GRANULARITY: u64 = 0x20000;
 
 /// Gameboy sysclk frequency: 4.19Mhz
 const SYSCLK_FREQ: u64 = 0x400000;
 
 /// How often should we adjust the audio resampling rate. In seconds.
-const AUDIO_ADJUST_SEC: u64 = 1;
+const AUDIO_ADJUST_SEC: u64 = 2;
