@@ -30,12 +30,12 @@ lazy_static = "1.2.0"
 time = "0.1.41"
 
 [target.'cfg(not(windows))'.dependencies]
-sdl2 = "0.31.0"
+#sdl2 = "0.31.0"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["processthreadsapi"] }
 #uncomment the following line for windows, interferes with not(windows) sdl config
-#sdl2 = { version = "0.31.0", features = ["bundled", "static-link"] } #for msvc, recommended.
+sdl2 = { version = "0.31.0", features = ["bundled", "static-link"] } #for msvc, recommended.
 
 [profile.test]
 opt-level = 2
