@@ -27,12 +27,18 @@ ascii = "0.5.0"
 log   = "0.3.1"
 bit-vec = "0.5.0"
 lazy_static = "1.2.0"
-#sdl2 = { version = "0.31.0", features = ["bundled", "static-link"] } #for msvc
-sdl2 = "0.31.0" # for mingw and linux
+time = "0.1.41"
+
+[target.'cfg(not(windows))'.dependencies]
+sdl2 = "0.31.0"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["processthreadsapi"] }
+sdl2 = { version = "0.31.0", features = ["bundled", "static-link"] } #for msvc, recommended.
+#sdl2 = "0.31.0" #for mingw
 
 [profile.test]
 opt-level = 2
-
 
 [profile.dev]
 opt-level = 0

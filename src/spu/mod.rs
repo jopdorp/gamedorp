@@ -731,7 +731,7 @@ pub const SAMPLES_PER_BUFFER: usize = 0x200;
 /// frequency.
 const SAMPLER_DIVIDER: u32 = 95;
 
-pub const SAMPLE_RATE: u32 = ::SYSCLK_FREQ as u32 / SAMPLER_DIVIDER;
+pub const SAMPLE_RATE: u32 = ::GAMEBOY_SYSTEM_CLOCK_FREQUENCY as u32 / SAMPLER_DIVIDER;
 
 /// Depth of the channel between the Spu and the audio
 /// backend. Ideally the channel should be empty most of the time and
