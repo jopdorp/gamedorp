@@ -28,6 +28,7 @@ log   = "0.3.1"
 bit-vec = "0.5.0"
 lazy_static = "1.2.0"
 time = "0.1.41"
+rust-ini = "0.13.0"
 sdl2 = { version = "0.31.0", features = ["bundled", "static-link"] } #for msvc, windows recommended.
 #sdl2 = "0.31.0" # mingw & linux
 

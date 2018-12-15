@@ -409,8 +409,7 @@ pub enum Interrupt {
     /// Timer overflow
     Timer,
     /// Button pressed
-    Button
-    // TODO: implement serial
+    Button, // TODO: implement serial
 }
 
 /// GB Interrupts, from highest to lowest priority

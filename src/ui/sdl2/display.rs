@@ -1,7 +1,7 @@
 use sdl2::pixels::Color as SDL_Color;
 use sdl2::rect::{Point, Rect};
 use sdl2::render::Canvas;
-use sdl2::video::{Window, SwapInterval};
+use sdl2::video::{SwapInterval, Window};
 use sdl2::Sdl;
 
 use gpu::Color;
@@ -12,7 +12,7 @@ pub struct Display {
 }
 
 impl Display {
-    pub fn new(sdl2: &Sdl, upscale: u8, fullscreen:bool) -> Display {
+    pub fn new(sdl2: &Sdl, upscale: u8, fullscreen: bool) -> Display {
         let xres = 160 * upscale as u32;
         let yres = 144 * upscale as u32;
 
@@ -23,23 +23,19 @@ impl Display {
                 .window("gb-rs", xres, yres)
                 .fullscreen()
                 .position_centered()
-				.opengl()
+                .opengl()
                 .build()
                 .unwrap()
         } else {
             video_subsystem
                 .window("gb-rs", xres, yres)
                 .position_centered()
-				.opengl()
+                .opengl()
                 .build()
                 .unwrap()
         };
 
-        let canvas = window
-            .into_canvas()
-            .software()
-            .build()
-            .unwrap();
+        let canvas = window.into_canvas().software().build().unwrap();
 
         Display {
             renderer: canvas,

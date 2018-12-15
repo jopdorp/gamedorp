@@ -17,7 +17,7 @@ pub struct Buttons<'a> {
     /// Abstract interface to the actual UI
     buttons: &'a Cell<::ui::Buttons>,
     last_input: u8,
-    interrupt_sent:bool
+    interrupt_sent: bool,
 }
 
 impl<'a> Buttons<'a> {
@@ -27,7 +27,7 @@ impl<'a> Buttons<'a> {
             buttons_selected: false,
             buttons: buttons,
             last_input: 0,
-            interrupt_sent: true
+            interrupt_sent: true,
         }
     }
 

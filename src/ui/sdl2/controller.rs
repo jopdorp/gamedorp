@@ -24,7 +24,7 @@ impl Controller {
             Ok(n) => {
                 info!("found {} joysticks!\n", n);
                 n
-            },
+            }
             Err(e) => {
                 error!("Can't enumarate joysticks: {:?}\n", e);
                 0
@@ -48,7 +48,7 @@ impl Controller {
                     }
                     Err(e) => info!("failed: {:?}\n", e),
                 }
-            }else{
+            } else {
                 info!("Joystick {} has no mapping\n", id);
             }
         }

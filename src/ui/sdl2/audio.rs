@@ -61,7 +61,7 @@ impl Audio {
     }
 }
 
-impl ::ui::Audio for Audio {
+impl ::ui::AudioTrait for Audio {
     fn adjust_resampling(&mut self, in_samples: u32) {
         self.async.adjust_resampling(in_samples);
     }

@@ -184,7 +184,6 @@ fn ld_a_de(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     false
 }
 
-
 fn ldd_a_hl(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0x3A {
         let address = cpu.read_hl_address();
@@ -443,7 +442,11 @@ fn subtract(cpu: &mut Cpu, instruction: u8, first_half: u8, second_half: u8) -> 
         (0, 0)
     };
     if cycles > 0 {
-        let carry = if second_half >= 8 { cpu.flags[4] as u8 } else  { 0 };
+        let carry = if second_half >= 8 {
+            cpu.flags[4] as u8
+        } else {
+            0
+        };
         cpu.accumulator = subtract_and_set_flags(cpu, a, b, carry);
         return true;
     }
@@ -579,19 +582,20 @@ fn disable_interrupts(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
 }
 
 fn call_immediate_16(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
-    if instruction == 0xCD ||
-        instruction == 0xCC ||
-        instruction == 0xC4 ||
-        instruction == 0xDC ||
-        instruction == 0xD4 {
-
+    if instruction == 0xCD
+        || instruction == 0xCC
+        || instruction == 0xC4
+        || instruction == 0xDC
+        || instruction == 0xD4
+    {
         let jump_to = cpu.read_immediate_value_16();
         let should_jump = {
-                instruction == 0xCD ||
-                instruction == 0xCC && cpu.flags[7] ||
-                instruction == 0xC4 && !cpu.flags[7] ||
-                instruction == 0xDC && cpu.flags[4] ||
-                instruction == 0xD4 && !cpu.flags[4] };
+            instruction == 0xCD
+                || instruction == 0xCC && cpu.flags[7]
+                || instruction == 0xC4 && !cpu.flags[7]
+                || instruction == 0xDC && cpu.flags[4]
+                || instruction == 0xD4 && !cpu.flags[4]
+        };
         if should_jump {
             let address = cpu.program_counter;
             cpu.push_stack(address);
@@ -776,7 +780,6 @@ fn rlca(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
 
     false
 }
-
 
 fn rra(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     if instruction == 0x1F {
@@ -1020,7 +1023,6 @@ fn ccf(cpu: &mut Cpu, instruction: u8, _: u8, _: u8) -> bool {
     }
     false
 }
-
 
 fn rst(cpu: &mut Cpu, _: u8, first_half: u8, second_half: u8) -> bool {
     if first_half >= 0xC && (second_half == 0x7 || second_half == 0xF) {
@@ -1284,14 +1286,13 @@ fn rotate_left(value: u8, cpu: &mut Cpu) -> u8 {
 }
 
 fn rotate_right(value: u8, cpu: &mut Cpu) -> u8 {
-    let new_value = (value >> 1) | ((cpu.flags[4] as u8)  << 7) ;
+    let new_value = (value >> 1) | ((cpu.flags[4] as u8) << 7);
     cpu.flags[4] = value & 0x1 != 0;
     cpu.flags[5] = false;
     cpu.flags[6] = false;
     cpu.flags[7] = new_value == 0;
     new_value
 }
-
 
 fn is_bit_zero(value: u8, bit_index: u8) -> bool {
     false == BitVec::from_bytes(&[value])[7 - bit_index as usize]

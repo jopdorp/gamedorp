@@ -51,8 +51,7 @@ mod test {
                 let instruction = cpu.memory_map.fetch_byte(pc);
                 info!(
                     "cpu1 testing instruction 0x{:x} for pc 0x{:x}\n",
-                    instruction,
-                    pc
+                    instruction, pc
                 );
                 info!(
                     "cpu2 testing instruction 0x{:x} for pc 0x{:x}\n",
@@ -61,7 +60,10 @@ mod test {
                 );
 
                 if instruction == 0xCB {
-                    info!("cpu cb instruction is 0x{:x}\n", cpu.memory_map.fetch_byte(pc.wrapping_add(1)));
+                    info!(
+                        "cpu cb instruction is 0x{:x}\n",
+                        cpu.memory_map.fetch_byte(pc.wrapping_add(1))
+                    );
                 }
             }
             cpu.run_next_instruction();
