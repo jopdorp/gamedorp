@@ -1,7 +1,4 @@
-[![Build Status](https://travis-ci.org/simias/gb-rs.svg)]
-(https://travis-ci.org/simias/gb-rs)
-
-gb-rs
+Gamedorp
 =====
 
 Game Boy emulator written in rust. No unsafe code so far.
